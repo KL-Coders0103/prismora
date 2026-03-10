@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dns = require("dns");
 const authRoutes = require("./routes/authRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 
 
@@ -20,6 +21,7 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/auth", authRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 
 app.get("/", (req, res) => {
