@@ -1,0 +1,7 @@
+# Python Dependencies
+flask
+pandas
+numpy
+scikit-learn
+prophet
+joblib
