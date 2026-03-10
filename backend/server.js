@@ -1,6 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const dns = require("dns");
+const authRoutes = require("./routes/authRoutes");
+
+
+
 require("dotenv").config();
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
@@ -14,6 +18,9 @@ app.use(express.json());
 
 // connect database
 connectDB();
+
+app.use("/api/auth", authRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("Prismora API Running");
