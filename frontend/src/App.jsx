@@ -5,9 +5,8 @@ import SalesAnalytics from "./pages/sales-analytics/SalesAnalytics";
 import CustomerAnalytics from "./pages/customer-analytics/CustomerAnalytics";
 import UploadData from "./pages/upload-data/UploadData";
 import Alerts from "./pages/alerts/Alerts";
-
-
-
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 
 
 function App() {
@@ -15,6 +14,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/ai-insights" element={<AIInsights />} />
         <Route path="/sales" element={<SalesAnalytics />} />
         <Route path="/customers" element={<CustomerAnalytics />} />
