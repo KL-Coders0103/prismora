@@ -4,8 +4,26 @@ import RevenueChart from "../../components/charts/RevenueChart";
 import SalesChart from "../../components/charts/SalesChart";
 import CustomerChart from "../../components/charts/CustomerChart";
 import HeatMap from "../../components/charts/HeatMap";
+import { useEffect, useState } from "react";
+import { getTotalRevenue } from "../../services/analyticsService";
 
 const Dashboard = () => {
+
+  const [revenue, setRevenue] = useState(0);
+
+  useEffect(() => {
+
+    const loadData = async () => {
+
+      const data = await getTotalRevenue();
+
+      setRevenue(data.totalRevenue);
+
+    };
+
+    loadData();
+
+  }, []);
 
   return (
 
@@ -15,13 +33,11 @@ const Dashboard = () => {
         Dashboard Overview
       </h1>
 
-      {/* KPI Cards */}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 
         <KPICard
           title="Revenue"
-          value="42,500"
+          value={`${revenue}`}
           change="+12%"
         />
 

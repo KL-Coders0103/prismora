@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -7,14 +8,34 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-const data = [
-  { category: "Electronics", sales: 2400 },
-  { category: "Clothing", sales: 1800 },
-  { category: "Furniture", sales: 1400 },
-  { category: "Sports", sales: 900 }
-];
+import { getSalesByCategory } from "../../services/analyticsService";
 
 const SalesChart = () => {
+
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+
+    const loadData = async () => {
+
+      const result = await getSalesByCategory();
+
+      const formatted = result.map(item => ({
+        category: item._id,
+        sales: item.totalSales
+      }));
+
+      setData(formatted);
+    };
+
+    loadData();
+
+  }, []);
+
+  if (!data.length) {
+  return <div className="p-5">Loading...</div>;
+}
+
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
 
