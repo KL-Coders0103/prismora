@@ -1,4 +1,5 @@
-import { LayoutDashboard, BarChart3, Users, Upload, FileText, Settings, X } from "lucide-react";
+import { LayoutDashboard, BarChart3, Users, Upload, FileText, Settings, X, Brain } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Sidebar = ({ open, setOpen }) => {
   return (
@@ -24,7 +25,16 @@ const Sidebar = ({ open, setOpen }) => {
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <LayoutDashboard size={18} />
-          Dashboard
+           <Link to="/" className="flex items-center gap-3 hover:text-blue-400">
+              Dashboard
+           </Link>
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <Brain size={18} />
+           <Link to="/ai-insights" className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+             AI Insights
+            </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">

@@ -4,6 +4,7 @@ const morgan = require("morgan");
 const authRoutes = require("./routes/authRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const insightsRoutes = require("./routes/insightsRoutes");
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(morgan("dev"));
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/insights", insightsRoutes);
 
 app.get("/", (req, res) => {
   res.send("Prismora API Running");

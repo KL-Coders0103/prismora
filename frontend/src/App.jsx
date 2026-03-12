@@ -1,7 +1,7 @@
 // import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 // import ProtectedRoute from "./components/ProtectedRoute";
 // import Dashboard from "./pages/dashboard/Dashboard";
-// import AIInsights from "./pages/ai-insights/AIInsights";
+
 // import SalesAnalytics from "./pages/sales-analytics/SalesAnalytics";
 // import CustomerAnalytics from "./pages/customer-analytics/CustomerAnalytics";
 // import UploadData from "./pages/upload-data/UploadData";
@@ -30,10 +30,25 @@
 // export default App;
 
 
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Dashboard from "./pages/dashboard/Dashboard";
+import AIInsights from "./pages/ai-insights/AIInsights";
 
 function App() {
-  return <Dashboard />;
+  return (
+    <BrowserRouter>
+
+      <Routes>
+
+        <Route path="/" element={<Dashboard />} />
+
+        <Route path="/ai-insights" element={<AIInsights />} />
+
+      </Routes>
+
+    </BrowserRouter>
+  );
 }
 
 export default App;
