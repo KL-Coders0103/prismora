@@ -1,46 +1,60 @@
-import { Link } from "react-router-dom";
+import { LayoutDashboard, BarChart3, Users, Upload, FileText, Settings, X } from "lucide-react";
 
-const Sidebar = () => {
+const Sidebar = ({ open, setOpen }) => {
   return (
-    <div style={styles.sidebar}>
-      <h2 style={styles.logo}>Prismora</h2>
+    <div
+      className={`fixed md:static top-0 left-0 h-screen w-64 bg-slate-900 border-r border-slate-700 p-5 transform ${
+        open ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0 transition-transform duration-300`}
+    >
+      <div className="flex items-center justify-between mb-10">
 
-      <nav style={styles.nav}>
-        <Link to="/" style={styles.link}>Dashboard</Link>
-        <Link to="/ai-insights" style={styles.link}>AI Insights</Link>
-        <Link to="/sales" style={styles.link}>Sales Analytics</Link>
-        <Link to="/customers" style={styles.link}>Customer Analytics</Link>
-        <Link to="/reports" style={styles.link}>Reports</Link>
-        <Link to="/upload" style={styles.link}>Upload Data</Link>
-        <Link to="/alerts" style={styles.link}>Alerts</Link>
-        <Link to="/team" style={styles.link}>Team</Link>
-        <Link to="/settings" style={styles.link}>Settings</Link>
+        <h1 className="text-2xl font-bold text-blue-400">
+          PRISMORA
+        </h1>
+
+        <X
+          className="md:hidden cursor-pointer"
+          onClick={() => setOpen(false)}
+        />
+
+      </div>
+
+      <nav className="space-y-4">
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <LayoutDashboard size={18} />
+          Dashboard
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <BarChart3 size={18} />
+          Sales Analytics
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <Users size={18} />
+          Customer Analytics
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <Upload size={18} />
+          Upload Data
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <FileText size={18} />
+          Reports
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <Settings size={18} />
+          Settings
+        </div>
+
       </nav>
     </div>
   );
-};
-
-const styles = {
-  sidebar: {
-    width: "220px",
-    height: "100vh",
-    background: "#111827",
-    color: "white",
-    padding: "20px",
-    position: "fixed",
-  },
-  logo: {
-    marginBottom: "30px",
-  },
-  nav: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-  },
-  link: {
-    color: "white",
-    textDecoration: "none",
-  },
 };
 
 export default Sidebar;

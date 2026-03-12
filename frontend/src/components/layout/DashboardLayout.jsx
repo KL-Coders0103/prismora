@@ -1,18 +1,26 @@
+import { useState } from "react";
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
 
 const DashboardLayout = ({ children }) => {
+
+  const [open, setOpen] = useState(false);
+
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar />
+    <div className="flex">
 
-      <div style={{ marginLeft: "220px", width: "100%" }}>
-        <TopNavbar />
+      <Sidebar open={open} setOpen={setOpen} />
 
-        <div style={{ padding: "20px" }}>
+      <div className="flex-1">
+
+        <TopNavbar setOpen={setOpen} />
+
+        <div className="p-6">
           {children}
         </div>
+
       </div>
+
     </div>
   );
 };

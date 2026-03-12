@@ -1,65 +1,33 @@
-import { useNavigate } from "react-router-dom";
+import { Bell, Search, Menu } from "lucide-react";
 
-const TopNavbar = () => {
+const TopNavbar = ({ setOpen }) => {
+  return (
+    <div className="h-16 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-6">
 
-const navigate = useNavigate();
+      <div className="flex items-center gap-4">
 
-const logout = () => {
-localStorage.removeItem("token");
-navigate("/login");
-};
+        <Menu
+          className="md:hidden cursor-pointer"
+          onClick={() => setOpen(true)}
+        />
 
-return (
+        <div className="hidden md:flex items-center bg-slate-800 px-3 py-2 rounded-lg">
+          <Search size={18} />
+          <input
+            className="bg-transparent outline-none ml-2"
+            placeholder="Search..."
+          />
+        </div>
 
-<div style={styles.navbar}>
+      </div>
 
-<input
-type="text"
-placeholder="Search insights..."
-style={styles.search}
-/>
+      <div className="flex items-center gap-5">
+        <Bell />
+        <div className="w-8 h-8 rounded-full bg-blue-500"></div>
+      </div>
 
-<div>
-
-<span style={styles.icon}>🔔</span>
-
-<button onClick={logout} style={styles.button}>
-Logout
-</button>
-
-</div>
-
-</div>
-
-);
-};
-
-const styles = {
-
-navbar: {
-height: "60px",
-background: "#fff",
-display: "flex",
-justifyContent: "space-between",
-alignItems: "center",
-padding: "0 20px",
-borderBottom: "1px solid #e5e7eb",
-},
-
-search: {
-padding: "8px",
-width: "250px",
-},
-
-icon: {
-marginRight: "15px",
-},
-
-button: {
-padding: "6px 10px",
-cursor: "pointer",
-}
-
+    </div>
+  );
 };
 
 export default TopNavbar;

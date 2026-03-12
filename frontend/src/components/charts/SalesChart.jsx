@@ -1,29 +1,37 @@
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid,
+  ResponsiveContainer
 } from "recharts";
 
 const data = [
-  { month: "Jan", sales: 4000 },
-  { month: "Feb", sales: 3000 },
-  { month: "Mar", sales: 5000 },
-  { month: "Apr", sales: 7000 },
-  { month: "May", sales: 6000 },
+  { category: "Electronics", sales: 2400 },
+  { category: "Clothing", sales: 1800 },
+  { category: "Furniture", sales: 1400 },
+  { category: "Sports", sales: 900 }
 ];
 
 const SalesChart = () => {
   return (
-    <LineChart width={600} height={300} data={data}>
-      <CartesianGrid stroke="#eee" />
-      <XAxis dataKey="month" />
-      <YAxis />
-      <Tooltip />
-      <Line type="monotone" dataKey="sales" stroke="#6366f1" />
-    </LineChart>
+    <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
+
+      <h2 className="text-lg font-bold mb-4">
+        Sales by Category
+      </h2>
+
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data}>
+          <XAxis dataKey="category" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="sales" fill="#3b82f6" />
+        </BarChart>
+      </ResponsiveContainer>
+
+    </div>
   );
 };
 

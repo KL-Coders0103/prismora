@@ -30,12 +30,10 @@
 // export default App;
 
 
+import Dashboard from "./pages/dashboard/Dashboard";
+
 function App() {
-  return (
-    <div className="flex items-center justify-center h-screen text-3xl">
-      Prismora Dashboard
-    </div>
-  )
+  return <Dashboard />;
 }
 
-export default App
+export default App;
