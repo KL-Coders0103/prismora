@@ -1,0 +1,4 @@
+date,product,category,quantity,revenue,region
+2024-01-01,Laptop,Electronics,10,12000,Mumbai
+2024-01-02,Mobile,Electronics,15,9000,Pune
+2024-01-03,Shoes,Fashion,20,5000,Delhi

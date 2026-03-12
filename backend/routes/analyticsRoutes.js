@@ -2,9 +2,16 @@ const express = require("express");
 const router = express.Router();
 
 const {
-getDashboardStats
+  getTotalRevenue,
+  salesByCategory,
+  salesByRegion
 } = require("../controllers/analyticsController");
 
-router.get("/dashboard", getDashboardStats);
+
+router.get("/revenue", getTotalRevenue);
+
+router.get("/category", salesByCategory);
+
+router.get("/region", salesByRegion);
 
 module.exports = router;
