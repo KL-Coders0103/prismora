@@ -1,4 +1,5 @@
 const Sales = require("../models/Sales");
+const { sendAlert } = require("../sockets/realtimeSocket");
 
 exports.generateInsights = async () => {
 
@@ -14,7 +15,9 @@ exports.generateInsights = async () => {
   ]);
 
   if (revenue.length && revenue[0].total > 20000) {
-    insights.push("Revenue trend is strong this month.");
+    const msg = "Revenue spike detected";
+    insights.push(msg);
+    sendAlert(msg);
   }
 
   const topCategory = await Sales.aggregate([

@@ -6,6 +6,7 @@ import CustomerChart from "../../components/charts/CustomerChart";
 import HeatMap from "../../components/charts/HeatMap";
 import { useEffect, useState } from "react";
 import { getTotalRevenue } from "../../services/analyticsService";
+import socket from "../../services/socket";
 
 const Dashboard = () => {
 
@@ -20,6 +21,12 @@ const Dashboard = () => {
       setRevenue(data.totalRevenue);
 
     };
+    socket.on("alert", (message) => {
+
+    alert(message);
+
+  });
+
 
     loadData();
 
