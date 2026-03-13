@@ -38,6 +38,13 @@ const Sidebar = ({ open, setOpen }) => {
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+          <Brain size={18} />
+           <Link to="/ai-chat" className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+             AI Assistant
+            </Link>
+        </div>
+
+        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <BarChart3 size={18} />
           Sales Analytics
         </div>

@@ -34,6 +34,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Dashboard from "./pages/dashboard/Dashboard";
 import AIInsights from "./pages/ai-insights/AIInsights";
+import AIChat from "./pages/ai-chat/AIChat";
 
 function App() {
   return (
@@ -42,8 +43,8 @@ function App() {
       <Routes>
 
         <Route path="/" element={<Dashboard />} />
-
         <Route path="/ai-insights" element={<AIInsights />} />
+        <Route path="/ai-chat" element={<AIChat />} />
 
       </Routes>
 
