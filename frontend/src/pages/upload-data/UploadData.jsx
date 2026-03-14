@@ -1,58 +1,64 @@
 import { useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import FileUpload from "../../components/ui/FileUpload";
+import API from "../../services/api";
 
 const UploadData = () => {
-  const [rows, setRows] = useState([]);
 
-  const handleFileUpload = (file) => {
-    const reader = new FileReader();
+  const [file, setFile] = useState(null);
+  const [message, setMessage] = useState("");
 
-    reader.onload = (event) => {
-      const text = event.target.result;
-      const lines = text.split("\n");
-      const data = lines.map((line) => line.split(","));
+  const handleUpload = async () => {
 
-      setRows(data.slice(0, 5)); // preview first 5 rows
-    };
+    if (!file) return;
 
-    reader.readAsText(file);
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const res = await API.post("/upload/csv", formData);
+
+    setMessage(res.data.message);
+
   };
 
   return (
+
     <DashboardLayout>
-      <h1>Upload Data</h1>
 
-      <FileUpload onFileUpload={handleFileUpload} />
+      <h1 className="text-3xl font-bold mb-6">
+        Upload Dataset
+      </h1>
 
-      {rows.length > 0 && (
-        <table style={styles.table}>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i}>
-                {row.map((cell, j) => (
-                  <td key={j} style={styles.cell}>
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className="bg-slate-900 p-6 rounded-xl">
+
+        <input
+          type="file"
+          accept=".csv"
+          onChange={(e)=>setFile(e.target.files[0])}
+          className="mb-4"
+        />
+
+        <button
+          onClick={handleUpload}
+          className="bg-blue-500 px-4 py-2 rounded"
+        >
+          Upload
+        </button>
+
+        {message && (
+
+          <p className="mt-4 text-green-400">
+            {message}
+          </p>
+
+        )}
+
+      </div>
+
     </DashboardLayout>
-  );
-};
 
-const styles = {
-  table: {
-    marginTop: "30px",
-    borderCollapse: "collapse",
-  },
-  cell: {
-    border: "1px solid #ddd",
-    padding: "8px",
-  },
+  );
+
 };
 
 export default UploadData;

@@ -35,6 +35,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/dashboard/Dashboard";
 import AIInsights from "./pages/ai-insights/AIInsights";
 import AIChat from "./pages/ai-chat/AIChat";
+import SalesAnalytics from "./pages/sales-analytics/SalesAnalytics";
+import CustomerAnalytics from "./pages/customer-analytics/CustomerAnalytics";
+import UploadData from "./pages/upload-data/UploadData";
+import Reports from "./pages/reports/Reports";
 
 function App() {
   return (
@@ -45,7 +49,10 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/ai-insights" element={<AIInsights />} />
         <Route path="/ai-chat" element={<AIChat />} />
-
+        <Route path="/sales-analytics" element={<SalesAnalytics />} />
+        <Route path="/customer-analytics" element={<CustomerAnalytics />} />
+        <Route path="/upload-data" element={<UploadData />} />
+        <Route path="/reports" element={<Reports />} />
       </Routes>
 
     </BrowserRouter>

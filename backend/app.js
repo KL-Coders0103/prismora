@@ -6,6 +6,8 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const insightsRoutes = require("./routes/insightsRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+
 
 const app = express();
 
@@ -18,6 +20,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/insights", insightsRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.get("/", (req, res) => {
   res.send("Prismora API Running");

@@ -1,34 +1,85 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import CustomerPieChart from "../../components/charts/CustomerPieChart";
-import CustomerTable from "../../components/tables/CustomerTable";
-import KPICard from "../../components/cards/KPICard";
+import API from "../../services/api";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
+
+const COLORS = ["#3b82f6","#22c55e","#f59e0b","#ef4444"];
 
 const CustomerAnalytics = () => {
-  return (
-    <DashboardLayout>
-      <h1>Customer Analytics</h1>
 
-      <div style={styles.cards}>
-        <KPICard title="Total Customers" value="2,450" change={6} />
-        <KPICard title="Retention Rate" value="78%" change={4} />
-        <KPICard title="Churn Rate" value="12%" change={-2} />
+  const [data,setData] = useState([]);
+
+  useEffect(()=>{
+
+    const load = async ()=>{
+
+      const res = await API.get("/analytics/customer-region");
+
+      const formatted = res.data.map(item=>({
+        name:item._id,
+        value:item.customers
+      }));
+
+      setData(formatted);
+
+    }
+
+    load();
+
+  },[]);
+
+  return(
+
+    <DashboardLayout>
+
+      <h1 className="text-3xl font-bold mb-6">
+        Customer Analytics
+      </h1>
+
+      <div className="bg-slate-900 p-6 rounded-xl">
+
+        <h2 className="mb-4">
+          Customers by Region
+        </h2>
+
+        <ResponsiveContainer width="100%" height={300}>
+
+          <PieChart>
+
+            <Pie
+              data={data}
+              dataKey="value"
+              outerRadius={100}
+            >
+
+              {data.map((entry,index)=>(
+                <Cell
+                  key={index}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+
+            </Pie>
+
+            <Tooltip/>
+
+          </PieChart>
+
+        </ResponsiveContainer>
+
       </div>
 
-      <h2 style={{ marginTop: "40px" }}>Customer Segmentation</h2>
-      <CustomerPieChart />
-
-      <h2 style={{ marginTop: "40px" }}>Top Customers</h2>
-      <CustomerTable />
     </DashboardLayout>
-  );
-};
 
-const styles = {
-  cards: {
-    display: "flex",
-    gap: "20px",
-    marginTop: "20px",
-  },
-};
+  )
 
-export default CustomerAnalytics;
+}
+
+export default CustomerAnalytics

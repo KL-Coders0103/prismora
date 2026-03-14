@@ -141,3 +141,49 @@ exports.productPerformance = async (req, res) => {
   }
 
 };
+
+exports.customerByRegion = async (req, res) => {
+
+  try {
+
+    const result = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$region",
+          customers: { $sum: 1 }
+        }
+      }
+    ]);
+
+    res.json(result);
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message });
+
+  }
+
+};
+
+exports.customerRevenue = async (req, res) => {
+
+  try {
+
+    const result = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$region",
+          revenue: { $sum: "$revenue" }
+        }
+      }
+    ]);
+
+    res.json(result);
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message });
+
+  }
+
+};

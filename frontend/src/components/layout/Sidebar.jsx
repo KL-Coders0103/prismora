@@ -25,43 +25,51 @@ const Sidebar = ({ open, setOpen }) => {
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <LayoutDashboard size={18} />
-           <Link to="/" className="flex items-center gap-3 hover:text-blue-400">
+           <Link to="/">
               Dashboard
            </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <Brain size={18} />
-           <Link to="/ai-insights" className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+           <Link to="/ai-insights">
              AI Insights
             </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <Brain size={18} />
-           <Link to="/ai-chat" className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
+           <Link to="/ai-chat">
              AI Assistant
             </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <BarChart3 size={18} />
-          Sales Analytics
+          <Link to="/sales-analytics">
+              Sales Analytics
+            </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <Users size={18} />
-          Customer Analytics
+          <Link to="/customer-analytics">
+              Customer Analytics      
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <Upload size={18} />
-          Upload Data
+          <Link to="/upload-data">
+            Upload Data
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
           <FileText size={18} />
-          Reports
+          <Link to="/reports">
+            Reports
+          </Link>
         </div>
 
         <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
