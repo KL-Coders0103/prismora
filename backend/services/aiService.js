@@ -1,5 +1,6 @@
 const Sales = require("../models/Sales");
 const { sendAlert } = require("../sockets/realtimeSocket");
+const {createAlert} = require("./alertService");
 
 exports.generateInsights = async () => {
 
@@ -17,8 +18,18 @@ exports.generateInsights = async () => {
   if (revenue.length && revenue[0].total > 20000) {
     const msg = "Revenue spike detected";
     insights.push(msg);
-    sendAlert(msg);
+    await createAlert(msg, "warning");
   }
+
+  if (revenue.length && revenue[0].total < 5000) {
+
+  const msg = "Sales dropped significantly ⚠️";
+
+  insights.push(msg);
+
+  await createAlert(msg, "danger");
+
+}
 
   const topCategory = await Sales.aggregate([
     {

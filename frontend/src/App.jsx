@@ -39,6 +39,7 @@ import SalesAnalytics from "./pages/sales-analytics/SalesAnalytics";
 import CustomerAnalytics from "./pages/customer-analytics/CustomerAnalytics";
 import UploadData from "./pages/upload-data/UploadData";
 import Reports from "./pages/reports/Reports";
+import Alerts from "./pages/alerts/Alerts";
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
         <Route path="/customer-analytics" element={<CustomerAnalytics />} />
         <Route path="/upload-data" element={<UploadData />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/alerts" element={<Alerts />} />
       </Routes>
 
     </BrowserRouter>

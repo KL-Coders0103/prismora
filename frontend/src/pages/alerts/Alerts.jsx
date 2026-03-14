@@ -1,45 +1,50 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import AlertCard from "../../components/cards/AlertCard";
+import API from "../../services/api";
 
 const Alerts = () => {
-  const alerts = [
-    {
-      title: "Sales Drop",
-      message: "Sales dropped 20% in the last 24 hours.",
-      severity: "high",
-    },
-    {
-      title: "Traffic Spike",
-      message: "Website traffic increased unusually.",
-      severity: "medium",
-    },
-    {
-      title: "Inventory Warning",
-      message: "Product A inventory below threshold.",
-      severity: "low",
-    },
-  ];
 
-  return (
+  const [alerts,setAlerts] = useState([]);
+
+  useEffect(()=>{
+
+    const loadAlerts = async ()=>{
+
+      const res = await API.get("/alerts");
+
+      setAlerts(res.data);
+
+    };
+
+    loadAlerts();
+
+  },[]);
+
+  return(
+
     <DashboardLayout>
-      <h1>Alerts & Anomalies</h1>
 
-      <div style={styles.grid}>
-        {alerts.map((alert, i) => (
-          <AlertCard key={i} {...alert} />
+      <h1 className="text-3xl font-bold mb-6">
+        Alerts
+      </h1>
+
+      <div className="space-y-4">
+
+        {alerts.map((alert,index)=>(
+          <div
+          key={index}
+          className="bg-red-900 p-4 rounded-lg"
+          >
+            {alert.message}
+          </div>
         ))}
+
       </div>
+
     </DashboardLayout>
-  );
-};
 
-const styles = {
-  grid: {
-    display: "flex",
-    gap: "20px",
-    marginTop: "20px",
-    flexWrap: "wrap",
-  },
-};
+  )
 
-export default Alerts;
+}
+
+export default Alerts
