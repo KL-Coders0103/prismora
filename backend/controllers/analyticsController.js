@@ -67,3 +67,77 @@ exports.salesByRegion = async (req, res) => {
   }
 
 };
+
+exports.monthlyRevenue = async (req, res) => {
+
+  try {
+
+    const result = await Sales.aggregate([
+      {
+        $group: {
+          _id: { $month: "$date" },
+          totalRevenue: { $sum: "$revenue" }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
+    ]);
+
+    res.json(result);
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message });
+
+  }
+
+};
+
+exports.topProducts = async (req, res) => {
+
+  try {
+
+    const result = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$product",
+          totalSales: { $sum: "$quantity" }
+        }
+      },
+      { $sort: { totalSales: -1 } },
+      { $limit: 5 }
+    ]);
+
+    res.json(result);
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message });
+
+  }
+
+};
+
+exports.productPerformance = async (req, res) => {
+
+  try {
+
+    const result = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$product",
+          revenue: { $sum: "$revenue" }
+        }
+      }
+    ]);
+
+    res.json(result);
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message });
+
+  }
+
+};
