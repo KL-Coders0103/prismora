@@ -7,8 +7,27 @@ const {
   downloadPDF
 } = require("../controllers/reportsController");
 
-router.get("/sales", downloadExcel);
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.get("/pdf", downloadPDF);
+
+
+// DOWNLOAD EXCEL REPORT
+router.get(
+  "/excel",
+  authMiddleware,
+  roleMiddleware(["admin", "analyst"]),
+  downloadExcel
+);
+
+
+// DOWNLOAD PDF REPORT
+router.get(
+  "/pdf",
+  authMiddleware,
+  roleMiddleware(["admin", "analyst"]),
+  downloadPDF
+);
+
 
 module.exports = router;

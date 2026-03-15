@@ -1,66 +1,125 @@
 const Sales = require("../models/Sales");
-const { sendAlert } = require("../sockets/realtimeSocket");
-const {createAlert} = require("./alertService");
 
 exports.generateInsights = async () => {
 
   const insights = [];
 
-  const revenue = await Sales.aggregate([
-    {
-      $group: {
-        _id: null,
-        total: { $sum: "$revenue" }
+  try {
+
+    // HIGH REVENUE REGION
+    const revenueByRegion = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$region",
+          revenue: { $sum: "$revenue" }
+        }
       }
+    ]);
+
+    revenueByRegion.forEach(region => {
+
+      if (region.revenue > 100000) {
+
+        insights.push({
+          title: "High Revenue Region",
+          description: `${region._id} region generated high revenue`,
+          type: "trend",
+          confidence: 85
+        });
+
+      }
+
+    });
+
+
+    // LOW PERFORMING CATEGORY
+    const categorySales = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          sales: { $sum: "$quantity" }
+        }
+      }
+    ]);
+
+    categorySales.forEach(cat => {
+
+      if (cat.sales < 50) {
+
+        insights.push({
+          title: "Low Performing Category",
+          description: `${cat._id} category has low sales`,
+          type: "recommendation",
+          confidence: 78
+        });
+
+      }
+
+    });
+
+
+    // TOP PRODUCT
+    const topProduct = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$product",
+          sales: { $sum: "$quantity" }
+        }
+      },
+      { $sort: { sales: -1 } },
+      { $limit: 1 }
+    ]);
+
+    if (topProduct.length > 0) {
+
+      insights.push({
+        title: "Top Selling Product",
+        description: `${topProduct[0]._id} is currently the top selling product`,
+        type: "trend",
+        confidence: 90
+      });
+
     }
-  ]);
 
-  if (revenue.length && revenue[0].total > 20000) {
-    const msg = "Revenue spike detected";
-    insights.push(msg);
-    await createAlert(msg, "warning");
-  }
 
-  if (revenue.length && revenue[0].total < 5000) {
+    // MONTHLY REVENUE TREND
+    const monthlyRevenue = await Sales.aggregate([
+      {
+        $group: {
+          _id: { $month: "$date" },
+          revenue: { $sum: "$revenue" }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
 
-  const msg = "Sales dropped significantly ⚠️";
+    if (monthlyRevenue.length >= 2) {
 
-  insights.push(msg);
+      const lastMonth = monthlyRevenue[monthlyRevenue.length - 1];
+      const prevMonth = monthlyRevenue[monthlyRevenue.length - 2];
 
-  await createAlert(msg, "danger");
+      if (lastMonth.revenue > prevMonth.revenue) {
 
-}
+        insights.push({
+          title: "Revenue Growth Detected",
+          description: "Revenue increased compared to the previous month",
+          type: "trend",
+          confidence: 88
+        });
 
-  const topCategory = await Sales.aggregate([
-    {
-      $group: {
-        _id: "$category",
-        total: { $sum: "$quantity" }
       }
-    },
-    { $sort: { total: -1 } },
-    { $limit: 1 }
-  ]);
 
-  if (topCategory.length) {
-    insights.push(`Top performing category is ${topCategory[0]._id}.`);
+    }
+
+
+    return insights;
+
+  } catch (error) {
+
+    console.error("AI Insight Error:", error.message);
+
+    return [];
+
   }
-
-  const topRegion = await Sales.aggregate([
-    {
-      $group: {
-        _id: "$region",
-        total: { $sum: "$revenue" }
-      }
-    },
-    { $sort: { total: -1 } },
-    { $limit: 1 }
-  ]);
-
-  if (topRegion.length) {
-    insights.push(`Highest revenue generated from ${topRegion[0]._id}.`);
-  }
-
-  return insights;
 
 };

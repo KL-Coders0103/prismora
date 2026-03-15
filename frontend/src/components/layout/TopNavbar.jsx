@@ -1,38 +1,95 @@
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu, User, LogOut } from "lucide-react";
+import { motion as Motion, AnimatePresence } from "framer-motion";
+
 import API from "../../services/api";
-import { useEffect, useState } from "react";
+import socket from "../../services/socket";
+
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 const TopNavbar = ({ setOpen }) => {
 
+  const navigate = useNavigate();
+
   const [alerts, setAlerts] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+
+  const dropdownRef = useRef();
+  const profileRef = useRef();
 
   useEffect(() => {
 
     const loadAlerts = async () => {
 
-      try {
+      const res = await API.get("/alerts");
 
-        const res = await API.get("/alerts");
-
-        setAlerts(res.data);
-
-      } catch (error) {
-
-        console.error("Error fetching alerts", error);
-
-      }
+      setAlerts(res.data);
 
     };
 
     loadAlerts();
 
+    socket.on("alert", (alert) => {
+
+      setAlerts(prev => [alert, ...prev]);
+
+    });
+
+    return () => socket.off("alert");
+
   }, []);
 
-  return (
-    <div className="h-16 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-6">
+  // CLOSE DROPDOWNS ON OUTSIDE CLICK
 
-      {/* LEFT SIDE */}
+  useEffect(() => {
+
+    const handler = (e) => {
+
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+
+        setShowNotifications(false);
+
+      }
+
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(e.target)
+      ) {
+
+        setShowProfile(false);
+
+      }
+
+    };
+
+    document.addEventListener("mousedown", handler);
+
+    return () => document.removeEventListener("mousedown", handler);
+
+  }, []);
+
+
+  // LOGOUT FUNCTION
+
+  const logout = () => {
+
+    localStorage.removeItem("token");
+
+    navigate("/login");
+
+  };
+
+
+  return (
+
+    <header className="h-16 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-6">
+
+      {/* LEFT */}
+
       <div className="flex items-center gap-4">
 
         <Menu
@@ -41,19 +98,25 @@ const TopNavbar = ({ setOpen }) => {
         />
 
         <div className="hidden md:flex items-center bg-slate-800 px-3 py-2 rounded-lg">
+
           <Search size={18} />
+
           <input
             className="bg-transparent outline-none ml-2 text-sm"
-            placeholder="Search..."
+            placeholder="Search datasets, insights..."
           />
+
         </div>
 
       </div>
 
-      {/* RIGHT SIDE */}
-      <div className="flex items-center gap-5 relative">
 
-        {/* Notification Bell */}
+      {/* RIGHT */}
+
+      <div className="flex items-center gap-6 relative">
+
+        {/* Notifications */}
+
         <button
           onClick={() => setShowNotifications(!showNotifications)}
           className="relative"
@@ -65,7 +128,7 @@ const TopNavbar = ({ setOpen }) => {
 
             <span className="absolute -top-2 -right-2 bg-red-500 text-xs px-1 rounded-full">
 
-              {alerts.length}
+              {alerts.length > 9 ? "9+" : alerts.length}
 
             </span>
 
@@ -73,13 +136,23 @@ const TopNavbar = ({ setOpen }) => {
 
         </button>
 
-        {/* Notification Dropdown */}
+
+        {/* Notifications Dropdown */}
+
+        <AnimatePresence>
+
         {showNotifications && (
 
-          <div className="absolute right-10 top-10 w-72 bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-4">
+          <Motion.div
+            ref={dropdownRef}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="absolute right-0 top-10 w-72 bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-4"
+          >
 
             <h3 className="font-semibold mb-3">
-              Notifications
+              Alerts
             </h3>
 
             {alerts.length === 0 && (
@@ -98,24 +171,79 @@ const TopNavbar = ({ setOpen }) => {
                   key={index}
                   className="bg-slate-800 p-2 rounded text-sm"
                 >
+
                   {alert.message}
+
                 </div>
 
               ))}
 
             </div>
 
-          </div>
+          </Motion.div>
 
         )}
 
-        {/* Profile Avatar */}
-        <div className="w-8 h-8 rounded-full bg-blue-500"></div>
+        </AnimatePresence>
+
+
+        {/* PROFILE */}
+
+        <div className="relative">
+
+          <button
+            onClick={() => setShowProfile(!showProfile)}
+            className="flex items-center gap-2 cursor-pointer hover:text-blue-400"
+          >
+
+            <User size={20} />
+
+            <span className="text-sm hidden md:block">
+              Admin
+            </span>
+
+          </button>
+
+
+          {/* PROFILE DROPDOWN */}
+
+          <AnimatePresence>
+
+          {showProfile && (
+
+            <Motion.div
+              ref={profileRef}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute right-0 mt-2 w-40 bg-slate-900 border border-slate-700 rounded-lg shadow-lg p-2"
+            >
+
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-slate-800 rounded"
+              >
+
+                <LogOut size={16} />
+
+                Logout
+
+              </button>
+
+            </Motion.div>
+
+          )}
+
+          </AnimatePresence>
+
+        </div>
 
       </div>
 
-    </div>
+    </header>
+
   );
+
 };
 
 export default TopNavbar;

@@ -8,38 +8,60 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  CartesianGrid
 } from "recharts";
+
+const months = [
+  "Jan","Feb","Mar","Apr","May","Jun",
+  "Jul","Aug","Sep","Oct","Nov","Dec"
+];
 
 const SalesAnalytics = () => {
 
-  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
-  const [topProducts, setTopProducts] = useState([]);
+  const [monthlyRevenue,setMonthlyRevenue] = useState([]);
+  const [topProducts,setTopProducts] = useState([]);
+  const [loading,setLoading] = useState(true);
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    const loadData = async () => {
+    const loadData = async ()=>{
 
-      const revenueRes = await API.get("/analytics/monthly-revenue");
+      try{
 
-      const formattedRevenue = revenueRes.data.map(item => ({
-        month: item._id,
-        revenue: item.totalRevenue
-      }));
+        const revenueRes = await API.get("/analytics/monthly-revenue");
 
-      setMonthlyRevenue(formattedRevenue);
+        const formattedRevenue = revenueRes.data.map(item=>({
 
-      const productRes = await API.get("/analytics/top-products");
+          month: months[item._id-1],
+          revenue: item.totalRevenue
 
-      setTopProducts(productRes.data);
+        }));
+
+        setMonthlyRevenue(formattedRevenue);
+
+        const productRes = await API.get("/analytics/top-products");
+
+        setTopProducts(productRes.data);
+
+      }catch(error){
+
+        console.error("Sales analytics error",error);
+
+      }finally{
+
+        setLoading(false);
+
+      }
 
     };
 
     loadData();
 
-  }, []);
+  },[]);
 
-  return (
+
+  return(
 
     <DashboardLayout>
 
@@ -47,9 +69,19 @@ const SalesAnalytics = () => {
         Sales Analytics
       </h1>
 
-      {/* Revenue Trend */}
+      {loading && (
+        <p className="text-gray-400">
+          Loading analytics...
+        </p>
+      )}
 
-      <div className="bg-slate-900 p-6 rounded-xl mb-8">
+      {!loading && (
+
+      <>
+
+      {/* Revenue Chart */}
+
+      <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl mb-8">
 
         <h2 className="text-xl mb-4">
           Monthly Revenue
@@ -59,16 +91,24 @@ const SalesAnalytics = () => {
 
           <LineChart data={monthlyRevenue}>
 
-            <XAxis dataKey="month" />
+            <CartesianGrid stroke="#334155" strokeDasharray="3 3"/>
 
-            <YAxis />
+            <XAxis dataKey="month" stroke="#94a3b8"/>
 
-            <Tooltip />
+            <YAxis stroke="#94a3b8"/>
+
+            <Tooltip
+              contentStyle={{
+                backgroundColor:"#0f172a",
+                border:"1px solid #334155"
+              }}
+            />
 
             <Line
               type="monotone"
               dataKey="revenue"
               stroke="#3b82f6"
+              strokeWidth={3}
             />
 
           </LineChart>
@@ -78,9 +118,9 @@ const SalesAnalytics = () => {
       </div>
 
 
-      {/* Top Products Table */}
+      {/* Top Products */}
 
-      <div className="bg-slate-900 p-6 rounded-xl">
+      <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl">
 
         <h2 className="text-xl mb-4">
           Top Selling Products
@@ -90,10 +130,10 @@ const SalesAnalytics = () => {
 
           <thead>
 
-            <tr className="text-left border-b border-gray-700">
+            <tr className="border-b border-slate-700 text-left">
 
-              <th className="py-2">Product</th>
-
+              <th className="py-2">Rank</th>
+              <th>Product</th>
               <th>Total Sales</th>
 
             </tr>
@@ -102,11 +142,18 @@ const SalesAnalytics = () => {
 
           <tbody>
 
-            {topProducts.map((product, index) => (
+            {topProducts.map((product,index)=>(
 
-              <tr key={index} className="border-b border-gray-800">
+              <tr
+                key={index}
+                className="border-b border-slate-800 hover:bg-slate-800"
+              >
 
-                <td className="py-2">{product._id}</td>
+                <td className="py-2">
+                  {index+1}
+                </td>
+
+                <td>{product._id}</td>
 
                 <td>{product.totalSales}</td>
 
@@ -119,6 +166,10 @@ const SalesAnalytics = () => {
         </table>
 
       </div>
+
+      </>
+
+      )}
 
     </DashboardLayout>
 

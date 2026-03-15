@@ -1,52 +1,77 @@
 import { useState } from "react";
 import { registerUser } from "../../services/authService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const Register = () => {
+
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
+  const [form,setForm] = useState({
+    name:"",
+    email:"",
+    password:""
   });
 
-  const handleChange = (e) => {
+  const [loading,setLoading] = useState(false);
+
+  const handleChange = (e)=>{
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value,
+      [e.target.name]:e.target.value
     });
+
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async(e)=>{
+
     e.preventDefault();
 
-    try {
+    setLoading(true);
+
+    try{
+
       await registerUser(form);
 
-      alert("User registered successfully");
+      alert("Account created");
 
       navigate("/login");
-    } catch {
+
+    }catch{
+
       alert("Registration failed");
+
     }
+
+    setLoading(false);
+
   };
 
-  return (
-    <div style={styles.container}>
-      <h2>Register</h2>
+  return(
 
-      <form onSubmit={handleSubmit} style={styles.form}>
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-slate-900 border border-slate-700 p-8 rounded-xl w-80"
+      >
+
+        <h2 className="text-2xl font-bold mb-6 text-center">
+          Create Account
+        </h2>
+
         <input
           name="name"
           placeholder="Name"
           onChange={handleChange}
+          className="w-full p-2 mb-4 bg-slate-800 rounded"
         />
 
         <input
           name="email"
           placeholder="Email"
           onChange={handleChange}
+          className="w-full p-2 mb-4 bg-slate-800 rounded"
         />
 
         <input
@@ -54,26 +79,32 @@ const Register = () => {
           type="password"
           placeholder="Password"
           onChange={handleChange}
+          className="w-full p-2 mb-4 bg-slate-800 rounded"
         />
 
-        <button type="submit">Register</button>
-      </form>
-    </div>
-  );
-};
+        <button
+          type="submit"
+          className="w-full bg-blue-500 py-2 rounded"
+        >
+          {loading ? "Creating..." : "Register"}
+        </button>
 
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    marginTop: "100px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    width: "250px",
-  },
+        <p className="text-sm mt-4 text-gray-400 text-center">
+
+          Already have an account?  
+
+          <Link to="/login" className="text-blue-400 ml-1">
+            Login
+          </Link>
+
+        </p>
+
+      </form>
+
+    </div>
+
+  );
+
 };
 
 export default Register;

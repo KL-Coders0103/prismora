@@ -1,5 +1,6 @@
 const parseCSV = require("../utils/csvParser");
 const Sales = require("../models/Sales");
+const { logActivity } = require("../services/activityService");
 
 exports.uploadCSV = async (req, res) => {
 
@@ -18,7 +19,17 @@ exports.uploadCSV = async (req, res) => {
       region: row.region
     }));
 
-    await Sales.insertMany(formattedData);
+    const batchSize = 1000;
+
+    for (let i = 0; i < formattedData.length; i += batchSize) {
+
+      const batch = formattedData.slice(i, i + batchSize);
+
+      await Sales.insertMany(batch);
+
+    }
+
+    await logActivity("System", "Dataset uploaded");
 
     res.json({
       message: "Dataset uploaded successfully",
@@ -27,7 +38,9 @@ exports.uploadCSV = async (req, res) => {
 
   } catch (error) {
 
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message
+    });
 
   }
 

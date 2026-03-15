@@ -1,13 +1,52 @@
-import { LayoutDashboard, BarChart3, Users, Upload, FileText, Settings, X, Brain, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  LayoutDashboard,
+  BarChart3,
+  Users,
+  Upload,
+  FileText,
+  Settings,
+  Brain,
+  Bell,
+  Clock,
+  User,
+  X
+} from "lucide-react";
+
+import { NavLink } from "react-router-dom";
+import { motion as Motion } from "framer-motion";
+
+const menu = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: Brain, label: "AI Insights", path: "/ai-insights" },
+  { icon: Brain, label: "AI Assistant", path: "/ai-chat" },
+
+  { icon: BarChart3, label: "Sales Analytics", path: "/sales-analytics" },
+  { icon: Users, label: "Customer Analytics", path: "/customer-analytics" },
+
+  { icon: Upload, label: "Upload Data", path: "/upload-data" },
+  { icon: FileText, label: "Reports", path: "/reports" },
+  { icon: Bell, label: "Alerts", path: "/alerts" },
+
+  { icon: Users, label: "Team Management", path: "/team" },
+  { icon: Clock, label: "Activity Logs", path: "/activity" },
+
+  { icon: User, label: "Profile", path: "/profile" },
+  { icon: Settings, label: "Settings", path: "/settings" }
+];
 
 const Sidebar = ({ open, setOpen }) => {
+
   return (
-    <div
-      className={`fixed md:static top-0 left-0 h-screen w-64 bg-slate-900 border-r border-slate-700 p-5 transform ${
-        open ? "translate-x-0" : "-translate-x-full"
-      } md:translate-x-0 transition-transform duration-300`}
+
+    <aside
+      className={`fixed md:static top-0 left-0 h-screen w-64
+      bg-slate-900 border-r border-slate-700 p-6
+      transform ${open ? "translate-x-0" : "-translate-x-full"}
+      md:translate-x-0 transition-transform duration-300`}
     >
+
+      {/* Logo */}
+
       <div className="flex items-center justify-between mb-10">
 
         <h1 className="text-2xl font-bold text-blue-400">
@@ -21,73 +60,51 @@ const Sidebar = ({ open, setOpen }) => {
 
       </div>
 
-      <nav className="space-y-4">
+      {/* Menu */}
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <LayoutDashboard size={18} />
-           <Link to="/">
-              Dashboard
-           </Link>
-        </div>
+      <nav className="space-y-2 overflow-y-auto">
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <Brain size={18} />
-           <Link to="/ai-insights">
-             AI Insights
-            </Link>
-        </div>
+        {menu.map((item, index) => {
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <Brain size={18} />
-           <Link to="/ai-chat">
-             AI Assistant
-            </Link>
-        </div>
+          const Icon = item.icon;
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <BarChart3 size={18} />
-          <Link to="/sales-analytics">
-              Sales Analytics
-            </Link>
-        </div>
+          return (
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <Users size={18} />
-          <Link to="/customer-analytics">
-              Customer Analytics      
-          </Link>
-        </div>
+            <Motion.div
+              whileHover={{ scale: 1.02 }}
+              key={index}
+            >
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <Upload size={18} />
-          <Link to="/upload-data">
-            Upload Data
-          </Link>
-        </div>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 p-3 rounded-lg text-sm transition
+                  ${
+                    isActive
+                      ? "bg-blue-500 text-white shadow-md"
+                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
+                  }`
+                }
+              >
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <FileText size={18} />
-          <Link to="/reports">
-            Reports
-          </Link>
-        </div>
+                <Icon size={18} />
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <Bell size={18} />
-          <Link to="/alerts">
-            Alerts
-          </Link>
-        </div>
-        
+                {item.label}
 
-        <div className="flex items-center gap-3 hover:text-blue-400 cursor-pointer">
-          <Settings size={18} />
-          Settings
-        </div>
+              </NavLink>
+
+            </Motion.div>
+
+          );
+
+        })}
 
       </nav>
-    </div>
+
+    </aside>
+
   );
+
 };
 
 export default Sidebar;

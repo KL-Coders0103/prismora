@@ -6,24 +6,64 @@ const initSocket = (server) => {
 
   io = new Server(server, {
     cors: {
-      origin: "*"
+      origin: "*",
+      methods: ["GET", "POST"]
     }
   });
 
   io.on("connection", (socket) => {
+
     console.log("User connected:", socket.id);
 
-    socket.on("disconnect", () => {
-      console.log("User disconnected");
+    // Join dashboard room
+    socket.on("join_dashboard", () => {
+
+      socket.join("dashboard");
+
+      console.log("User joined dashboard room");
+
     });
+
+    socket.on("disconnect", () => {
+
+      console.log("User disconnected:", socket.id);
+
+    });
+
   });
 
 };
 
-const sendAlert = (message) => {
+
+// SEND ALERT TO ALL DASHBOARD USERS
+const sendAlert = (alert) => {
+
   if (io) {
-    io.emit("alert", message);
+
+    io.to("dashboard").emit("alert", alert);
+
   }
+
 };
 
-module.exports = { initSocket, sendAlert };
+
+// SEND GENERAL NOTIFICATION
+const sendNotification = (data) => {
+
+  if (io) {
+
+    io.to("dashboard").emit("notification", data);
+
+  }
+
+};
+
+
+const getIO = () => io;
+
+module.exports = {
+  initSocket,
+  getIO,
+  sendAlert,
+  sendNotification
+};

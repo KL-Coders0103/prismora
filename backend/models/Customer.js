@@ -1,22 +1,55 @@
- const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
-const customerSchema = new mongoose.Schema({
+const customerSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
 
-  name: String,
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, "Please use a valid email address"],
+      index: true
+    },
 
-  email: String,
+    region: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true
+    },
 
-  region: String,
+    totalOrders: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
 
-  totalOrders: Number,
+    totalSpent: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
 
-  totalSpent: Number,
-
-  createdAt: {
-    type: Date,
-    default: Date.now
+    isActive: {
+      type: Boolean,
+      default: true
+    }
+  },
+  {
+    timestamps: true
   }
+);
 
-});
+
+// Indexes for analytics
+customerSchema.index({ region: 1 });
+customerSchema.index({ totalSpent: -1 });
 
 module.exports = mongoose.model("Customer", customerSchema);

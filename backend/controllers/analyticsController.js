@@ -1,29 +1,36 @@
 const Sales = require("../models/Sales");
 
-// TOTAL REVENUE
-exports.getTotalRevenue = async (req, res) => {
+exports.dashboardSummary = async (req, res) => {
 
   try {
 
-    const result = await Sales.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$revenue" }
-        }
-      }
+    const revenue = await Sales.aggregate([
+      { $group: { _id: null, totalRevenue: { $sum: "$revenue" } } }
     ]);
 
-    res.json(result[0]);
+    const sales = await Sales.aggregate([
+      { $group: { _id: null, totalSales: { $sum: "$quantity" } } }
+    ]);
+
+    const customers = await Sales.aggregate([
+      { $group: { _id: "$region" } },
+      { $count: "totalCustomers" }
+    ]);
+
+    res.json({
+      revenue: revenue[0]?.totalRevenue || 0,
+      sales: sales[0]?.totalSales || 0,
+      customers: customers[0]?.totalCustomers || 0
+    });
 
   } catch (error) {
+
     res.status(500).json({ error: error.message });
+
   }
 
 };
 
-
-// SALES BY CATEGORY
 exports.salesByCategory = async (req, res) => {
 
   try {
@@ -40,13 +47,13 @@ exports.salesByCategory = async (req, res) => {
     res.json(result);
 
   } catch (error) {
+
     res.status(500).json({ error: error.message });
+
   }
 
 };
 
-
-// SALES BY REGION
 exports.salesByRegion = async (req, res) => {
 
   try {
@@ -63,7 +70,9 @@ exports.salesByRegion = async (req, res) => {
     res.json(result);
 
   } catch (error) {
+
     res.status(500).json({ error: error.message });
+
   }
 
 };
@@ -76,106 +85,10 @@ exports.monthlyRevenue = async (req, res) => {
       {
         $group: {
           _id: { $month: "$date" },
-          totalRevenue: { $sum: "$revenue" }
-        }
-      },
-      {
-        $sort: { _id: 1 }
-      }
-    ]);
-
-    res.json(result);
-
-  } catch (error) {
-
-    res.status(500).json({ error: error.message });
-
-  }
-
-};
-
-exports.topProducts = async (req, res) => {
-
-  try {
-
-    const result = await Sales.aggregate([
-      {
-        $group: {
-          _id: "$product",
-          totalSales: { $sum: "$quantity" }
-        }
-      },
-      { $sort: { totalSales: -1 } },
-      { $limit: 5 }
-    ]);
-
-    res.json(result);
-
-  } catch (error) {
-
-    res.status(500).json({ error: error.message });
-
-  }
-
-};
-
-exports.productPerformance = async (req, res) => {
-
-  try {
-
-    const result = await Sales.aggregate([
-      {
-        $group: {
-          _id: "$product",
           revenue: { $sum: "$revenue" }
         }
-      }
-    ]);
-
-    res.json(result);
-
-  } catch (error) {
-
-    res.status(500).json({ error: error.message });
-
-  }
-
-};
-
-exports.customerByRegion = async (req, res) => {
-
-  try {
-
-    const result = await Sales.aggregate([
-      {
-        $group: {
-          _id: "$region",
-          customers: { $sum: 1 }
-        }
-      }
-    ]);
-
-    res.json(result);
-
-  } catch (error) {
-
-    res.status(500).json({ error: error.message });
-
-  }
-
-};
-
-exports.customerRevenue = async (req, res) => {
-
-  try {
-
-    const result = await Sales.aggregate([
-      {
-        $group: {
-          _id: "$region",
-          revenue: { $sum: "$revenue" }
-        }
-      }
+      },
+      { $sort: { _id: 1 } }
     ]);
 
     res.json(result);

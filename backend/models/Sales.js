@@ -1,19 +1,54 @@
 const mongoose = require("mongoose");
 
-const salesSchema = new mongoose.Schema({
+const salesSchema = new mongoose.Schema(
+  {
+    date: {
+      type: Date,
+      required: true,
+      index: true
+    },
 
-  date: Date,
+    product: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true
+    },
 
-  product: String,
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true
+    },
 
-  category: String,
+    quantity: {
+      type: Number,
+      required: true,
+      min: 0
+    },
 
-  quantity: Number,
+    revenue: {
+      type: Number,
+      required: true,
+      min: 0
+    },
 
-  revenue: Number,
+    region: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true
+    }
+  },
+  {
+    timestamps: true
+  }
+);
 
-  region: String
 
-}, { timestamps: true });
+// COMPOUND INDEX (important for analytics)
+salesSchema.index({ date: 1, region: 1 });
+salesSchema.index({ category: 1, region: 1 });
 
 module.exports = mongoose.model("Sales", salesSchema);

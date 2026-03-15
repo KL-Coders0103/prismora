@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const {
+  dashboardSummary,
   getTotalRevenue,
   salesByCategory,
   salesByRegion,
@@ -12,21 +13,72 @@ const {
   customerRevenue
 } = require("../controllers/analyticsController");
 
+const authMiddleware = require("../middleware/authMiddleware");
 
-router.get("/revenue", getTotalRevenue);
 
-router.get("/category", salesByCategory);
 
-router.get("/region", salesByRegion);
+// DASHBOARD SUMMARY
+router.get(
+  "/dashboard",
+  authMiddleware,
+  dashboardSummary
+);
 
-router.get("/monthly-revenue", monthlyRevenue);
 
-router.get("/top-products", topProducts);
+// REVENUE
+router.get(
+  "/revenue",
+  authMiddleware,
+  getTotalRevenue
+);
 
-router.get("/product-performance", productPerformance);
+router.get(
+  "/revenue/monthly",
+  authMiddleware,
+  monthlyRevenue
+);
 
-router.get("/customer-region", customerByRegion);
 
-router.get("/customer-revenue", customerRevenue);
+// SALES ANALYTICS
+router.get(
+  "/sales/category",
+  authMiddleware,
+  salesByCategory
+);
+
+router.get(
+  "/sales/region",
+  authMiddleware,
+  salesByRegion
+);
+
+
+// PRODUCT ANALYTICS
+router.get(
+  "/products/top",
+  authMiddleware,
+  topProducts
+);
+
+router.get(
+  "/products/performance",
+  authMiddleware,
+  productPerformance
+);
+
+
+// CUSTOMER ANALYTICS
+router.get(
+  "/customers/region",
+  authMiddleware,
+  customerByRegion
+);
+
+router.get(
+  "/customers/revenue",
+  authMiddleware,
+  customerRevenue
+);
+
 
 module.exports = router;
