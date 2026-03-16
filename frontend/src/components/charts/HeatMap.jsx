@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../../services/api";
+import { getProductPerformance } from "../../services/analyticsService";
+
 
 const getColor = (value) => {
 
@@ -22,10 +24,9 @@ const HeatMap = () => {
 
       try {
 
-        const res = await API.get("/analytics/product-performance");
+        const res = await getProductPerformance();
 
-        const formatted = res.data
-          .map(item => ({
+        const formatted = res.map(item => ({
             name: item._id,
             score: item.revenue
           }))

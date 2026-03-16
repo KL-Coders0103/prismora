@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import API from "../../services/api";
 
 import {
   LineChart,
@@ -12,6 +11,11 @@ import {
   CartesianGrid
 } from "recharts";
 
+import {
+  getMonthlyRevenue,
+  getTopProducts
+} from "../../services/analyticsService";
+
 const months = [
   "Jan","Feb","Mar","Apr","May","Jun",
   "Jul","Aug","Sep","Oct","Nov","Dec"
@@ -21,7 +25,9 @@ const SalesAnalytics = () => {
 
   const [monthlyRevenue,setMonthlyRevenue] = useState([]);
   const [topProducts,setTopProducts] = useState([]);
+
   const [loading,setLoading] = useState(true);
+  const [error,setError] = useState(null);
 
   useEffect(()=>{
 
@@ -29,24 +35,26 @@ const SalesAnalytics = () => {
 
       try{
 
-        const revenueRes = await API.get("/analytics/monthly-revenue");
+        const [revenueData, productData] = await Promise.all([
+          getMonthlyRevenue(),
+          getTopProducts()
+        ]);
 
-        const formattedRevenue = revenueRes.data.map(item=>({
+        const formattedRevenue = revenueData.map(item=>({
 
-          month: months[item._id-1],
+          month: months[item._id-1] || "Unknown",
           revenue: item.totalRevenue
 
         }));
 
         setMonthlyRevenue(formattedRevenue);
+        setTopProducts(productData);
 
-        const productRes = await API.get("/analytics/top-products");
+      }catch(err){
 
-        setTopProducts(productRes.data);
+        console.error(err);
 
-      }catch(error){
-
-        console.error("Sales analytics error",error);
+        setError("Failed to load sales analytics");
 
       }finally{
 
@@ -60,7 +68,6 @@ const SalesAnalytics = () => {
 
   },[]);
 
-
   return(
 
     <DashboardLayout>
@@ -69,10 +76,22 @@ const SalesAnalytics = () => {
         Sales Analytics
       </h1>
 
+      {error && (
+        <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
       {loading && (
-        <p className="text-gray-400">
-          Loading analytics...
-        </p>
+
+        <div className="space-y-6">
+
+          <div className="h-72 bg-slate-800 animate-pulse rounded-xl"></div>
+
+          <div className="h-48 bg-slate-800 animate-pulse rounded-xl"></div>
+
+        </div>
+
       )}
 
       {!loading && (
@@ -86,6 +105,14 @@ const SalesAnalytics = () => {
         <h2 className="text-xl mb-4">
           Monthly Revenue
         </h2>
+
+        {monthlyRevenue.length === 0 ? (
+
+          <p className="text-gray-400 text-sm">
+            No revenue data available
+          </p>
+
+        ) : (
 
         <ResponsiveContainer width="100%" height={300}>
 
@@ -115,6 +142,8 @@ const SalesAnalytics = () => {
 
         </ResponsiveContainer>
 
+        )}
+
       </div>
 
 
@@ -125,6 +154,8 @@ const SalesAnalytics = () => {
         <h2 className="text-xl mb-4">
           Top Selling Products
         </h2>
+
+        <div className="overflow-x-auto">
 
         <table className="w-full">
 
@@ -142,10 +173,22 @@ const SalesAnalytics = () => {
 
           <tbody>
 
+            {topProducts.length === 0 && (
+
+              <tr>
+
+                <td colSpan="3" className="py-4 text-gray-400">
+                  No product data available
+                </td>
+
+              </tr>
+
+            )}
+
             {topProducts.map((product,index)=>(
 
               <tr
-                key={index}
+                key={product._id}
                 className="border-b border-slate-800 hover:bg-slate-800"
               >
 
@@ -164,6 +207,8 @@ const SalesAnalytics = () => {
           </tbody>
 
         </table>
+
+        </div>
 
       </div>
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import API from "../../services/api";
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import { sendChatMessage } from "../../services/chatService";
 
 const suggestions = [
   "What is the top selling product?",
@@ -11,9 +11,9 @@ const suggestions = [
 
 const AIChat = () => {
 
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [message,setMessage] = useState("");
+  const [messages,setMessages] = useState([]);
+  const [loading,setLoading] = useState(false);
 
   const chatRef = useRef();
 
@@ -21,34 +21,46 @@ const AIChat = () => {
 
     const query = text || message;
 
-    if (!query) return;
+    if(!query.trim()) return;
 
-    const userMessage = { role: "user", text: query };
+    const userMessage = {
+      id:Date.now(),
+      role:"user",
+      text:query,
+      time:new Date()
+    };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => [...prev,userMessage].slice(-100));
 
     setMessage("");
     setLoading(true);
 
-    try {
+    try{
 
-      const res = await API.post("/chat", { message: query });
+      const reply = await sendChatMessage(query);
 
       const aiMessage = {
-        role: "ai",
-        text: res.data.reply
+        id:Date.now()+1,
+        role:"ai",
+        text:reply,
+        time:new Date()
       };
 
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages(prev => [...prev,aiMessage].slice(-100));
 
-    } catch {
+    }catch{
 
       setMessages(prev => [
         ...prev,
-        { role:"ai", text:"Error processing query." }
+        {
+          id:Date.now()+2,
+          role:"ai",
+          text:"Error processing query.",
+          time:new Date()
+        }
       ]);
 
-    } finally {
+    }finally{
 
       setLoading(false);
 
@@ -56,20 +68,18 @@ const AIChat = () => {
 
   };
 
-  // auto scroll
+  useEffect(()=>{
 
-  useEffect(() => {
-
-    if (chatRef.current) {
+    if(chatRef.current){
 
       chatRef.current.scrollTop =
         chatRef.current.scrollHeight;
 
     }
 
-  }, [messages]);
+  },[messages]);
 
-  return (
+  return(
 
     <DashboardLayout>
 
@@ -77,15 +87,15 @@ const AIChat = () => {
         AI Assistant
       </h1>
 
-      {/* Suggested Questions */}
+      {/* Suggestions */}
 
       <div className="flex flex-wrap gap-2 mb-4">
 
-        {suggestions.map((s, i) => (
+        {suggestions.map((s)=> (
 
           <button
-            key={i}
-            onClick={() => sendMessage(s)}
+            key={s}
+            onClick={()=>sendMessage(s)}
             className="bg-slate-800 px-3 py-1 rounded text-sm hover:bg-slate-700"
           >
 
@@ -97,7 +107,7 @@ const AIChat = () => {
 
       </div>
 
-      {/* Chat Box */}
+      {/* Chat */}
 
       <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 h-[500px] flex flex-col">
 
@@ -106,18 +116,32 @@ const AIChat = () => {
           className="flex-1 overflow-y-auto space-y-4"
         >
 
-          {messages.map((msg, index) => (
+          {messages.length===0 && (
+
+            <p className="text-gray-400 text-sm">
+              Ask a question about sales, customers or revenue.
+            </p>
+
+          )}
+
+          {messages.map((msg)=>(
 
             <div
-              key={index}
+              key={msg.id}
               className={`p-3 rounded-lg max-w-[70%] ${
-                msg.role === "user"
+                msg.role==="user"
                   ? "bg-blue-500 ml-auto"
                   : "bg-slate-800"
               }`}
             >
 
-              {msg.text}
+              <div>{msg.text}</div>
+
+              <div className="text-xs opacity-60 mt-1">
+
+                {msg.time.toLocaleTimeString()}
+
+              </div>
 
             </div>
 
@@ -126,9 +150,7 @@ const AIChat = () => {
           {loading && (
 
             <div className="bg-slate-800 p-3 rounded-lg w-fit">
-
               AI is typing...
-
             </div>
 
           )}
@@ -143,6 +165,7 @@ const AIChat = () => {
             className="bg-slate-800 p-3 rounded w-full"
             placeholder="Ask about revenue, sales trends..."
             value={message}
+            disabled={loading}
             onChange={(e)=>setMessage(e.target.value)}
             onKeyDown={(e)=>{
               if(e.key==="Enter") sendMessage();
@@ -151,7 +174,8 @@ const AIChat = () => {
 
           <button
             onClick={()=>sendMessage()}
-            className="bg-blue-500 px-4 rounded"
+            disabled={loading}
+            className="bg-blue-500 px-4 rounded disabled:opacity-50"
           >
 
             Send
@@ -164,8 +188,8 @@ const AIChat = () => {
 
     </DashboardLayout>
 
-  );
+  )
 
-};
+}
 
-export default AIChat;
+export default AIChat

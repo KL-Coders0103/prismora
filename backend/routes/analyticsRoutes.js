@@ -3,7 +3,6 @@ const router = express.Router();
 
 const {
   dashboardSummary,
-  getTotalRevenue,
   salesByCategory,
   salesByRegion,
   monthlyRevenue,
@@ -14,71 +13,61 @@ const {
 } = require("../controllers/analyticsController");
 
 const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
-
-
-// DASHBOARD SUMMARY
 router.get(
   "/dashboard",
   authMiddleware,
   dashboardSummary
 );
 
-
-// REVENUE
-router.get(
-  "/revenue",
-  authMiddleware,
-  getTotalRevenue
-);
-
 router.get(
   "/revenue/monthly",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   monthlyRevenue
 );
 
-
-// SALES ANALYTICS
 router.get(
   "/sales/category",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   salesByCategory
 );
 
 router.get(
   "/sales/region",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   salesByRegion
 );
 
-
-// PRODUCT ANALYTICS
 router.get(
   "/products/top",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   topProducts
 );
 
 router.get(
   "/products/performance",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   productPerformance
 );
 
-
-// CUSTOMER ANALYTICS
 router.get(
   "/customers/region",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   customerByRegion
 );
 
 router.get(
   "/customers/revenue",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   customerRevenue
 );
-
 
 module.exports = router;

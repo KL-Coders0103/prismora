@@ -1,6 +1,6 @@
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -9,38 +9,65 @@ import {
 } from "recharts";
 
 import { useEffect, useState } from "react";
-import API from "../../services/api";
+import { getMonthlyRevenue } from "../../services/analyticsService";
 
 const RevenueChart = () => {
 
-  const [data, setData] = useState([]);
+  const [data,setData] = useState([]);
+  const [loading,setLoading] = useState(true);
 
-  useEffect(() => {
+  useEffect(()=>{
 
-    const loadRevenue = async () => {
+    const load = async ()=>{
 
-      try {
+      try{
 
-        const res = await API.get("/analytics/revenue/monthly");
+        const res = await getMonthlyRevenue();
 
-        const formatted = res.data.map(item => ({
-          month: `M${item._id}`,
-          revenue: item.totalRevenue
+        const formatted = res.map(item=>({
+          month:item._id,
+          revenue:item.revenue
         }));
 
         setData(formatted);
 
-      } catch (error) {
+      }catch(err){
 
-        console.error("Revenue chart error:", error);
+        console.error(err);
+
+      }finally{
+
+        setLoading(false);
 
       }
 
-    };
+    }
 
-    loadRevenue();
+    load();
 
-  }, []);
+  },[]);
+
+  if(loading){
+
+    return (
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
+        <h2 className="text-lg font-bold mb-4">Revenue Trend</h2>
+        <div className="animate-pulse h-72 bg-slate-800 rounded"></div>
+      </div>
+    );
+
+  }
+
+  if(data.length === 0){
+
+    return (
+      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
+        <h2 className="text-lg font-bold mb-4">Revenue Trend</h2>
+        <p className="text-gray-400 text-sm">No revenue data available</p>
+      </div>
+    );
+
+  }
 
   return (
 
@@ -52,47 +79,32 @@ const RevenueChart = () => {
 
       <ResponsiveContainer width="100%" height={320}>
 
-        <LineChart data={data}>
+        <AreaChart data={data}>
 
-          {/* Gradient */}
+        <CartesianGrid stroke="#1e293b"/>
 
-          <defs>
+        <XAxis dataKey="month"/>
 
-            <linearGradient id="revenueColor" x1="0" y1="0" x2="0" y2="1">
+        <YAxis/>
 
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-
-            </linearGradient>
-
-          </defs>
-
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-
-          <XAxis dataKey="month" stroke="#94a3b8" />
-
-          <YAxis stroke="#94a3b8" />
-
-          <Tooltip
-            contentStyle={{
-              backgroundColor:"#0f172a",
-              border:"1px solid #334155",
-              borderRadius:"8px"
-            }}
+        <Tooltip
+          formatter={(value)=>
+            new Intl.NumberFormat("en-IN",{
+              style:"currency",
+              currency:"INR"
+            }).format(value)
+          }
           />
 
-          <Line
-            type="monotone"
-            dataKey="revenue"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            dot={{ r:4 }}
-            activeDot={{ r:6 }}
-            animationDuration={800}
-          />
+        <Area
+          type="monotone"
+          dataKey="revenue"
+          stroke="#3b82f6"
+          fill="#3b82f6"
+          fillOpacity={0.25}
+        />
 
-        </LineChart>
+        </AreaChart>
 
       </ResponsiveContainer>
 

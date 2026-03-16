@@ -5,16 +5,23 @@ const ActivityLog = require("../models/ActivityLog");
 exports.logActivity = async (
   user = null,
   action,
-  metadata = {}
+  metadata = {},
+  entity = ""
 ) => {
 
   try {
 
-    await ActivityLog.create({
-      user,
-      action,
-      metadata
-    });
+    const logData = {
+      action: action?.trim(),
+      metadata,
+      entity
+    };
+
+    if (user && user !== "System") {
+      logData.user = user;
+    }
+
+    await ActivityLog.create(logData);
 
   } catch (error) {
 

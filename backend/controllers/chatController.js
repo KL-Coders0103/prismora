@@ -1,12 +1,11 @@
 const { processQuery } = require("../services/chatService");
 const { logActivity } = require("../services/activityService");
 
-
 exports.chatQuery = async (req, res) => {
 
   try {
 
-    const { message } = req.body;
+    let { message } = req.body;
 
     if (!message || message.trim() === "") {
 
@@ -15,6 +14,8 @@ exports.chatQuery = async (req, res) => {
       });
 
     }
+
+    message = message.trim();
 
     if (message.length > 500) {
 
@@ -29,7 +30,7 @@ exports.chatQuery = async (req, res) => {
     await logActivity(
       req.user?.id || null,
       "ai_chat_query",
-      { query: message }
+      { query: message.substring(0, 100) }
     );
 
     res.json({
@@ -38,8 +39,10 @@ exports.chatQuery = async (req, res) => {
 
   } catch (error) {
 
+    console.error("AI chat error:", error);
+
     res.status(500).json({
-      error: error.message
+      message: "Failed to process AI query"
     });
 
   }

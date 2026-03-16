@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import API from "../../services/api";
+import {
+  getUsers,
+  deleteUserById
+} from "../../services/userService";
 
 const getRoleColor = (role) => {
 
-  if(role==="admin") return "bg-red-500";
-  if(role==="analyst") return "bg-blue-500";
+  if(role==="admin") return "bg-red-500 text-white";
+  if(role==="analyst") return "bg-blue-500 text-white";
 
-  return "bg-gray-500";
+  return "bg-gray-500 text-white";
 
 };
 
@@ -15,6 +18,8 @@ const TeamManagement = () => {
 
   const [users,setUsers] = useState([]);
   const [loading,setLoading] = useState(true);
+  const [error,setError] = useState(null);
+  const [deleting,setDeleting] = useState(null);
 
   useEffect(()=>{
 
@@ -22,13 +27,15 @@ const TeamManagement = () => {
 
       try{
 
-        const res = await API.get("/auth/users");
+        const data = await getUsers();
 
-        setUsers(res.data);
+        setUsers(data);
 
-      }catch(error){
+      }catch(err){
 
-        console.error("Users error",error);
+        console.error(err);
+
+        setError("Failed to load users");
 
       }finally{
 
@@ -42,17 +49,33 @@ const TeamManagement = () => {
 
   },[]);
 
-  const deleteUser = async (id)=>{
+  const handleDelete = async (id)=>{
 
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this user?"
+      "Delete this user?"
     );
 
     if(!confirmDelete) return;
 
-    await API.delete(`/auth/users/${id}`);
+    setDeleting(id);
 
-    setUsers(users.filter(u => u._id !== id));
+    try{
+
+      await deleteUserById(id);
+
+      setUsers(prev => prev.filter(u => u._id !== id));
+
+    }catch(err){
+
+      console.error(err);
+
+      setError("Failed to delete user");
+
+    }finally{
+
+      setDeleting(null);
+
+    }
 
   };
 
@@ -64,25 +87,27 @@ const TeamManagement = () => {
         Team Management
       </h1>
 
-      {loading && (
+      {error && (
+        <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
+      {loading && (
         <p className="text-gray-400">
           Loading users...
         </p>
-
       )}
 
       {!loading && users.length===0 && (
-
         <p className="text-gray-400">
           No team members found.
         </p>
-
       )}
 
       {!loading && users.length>0 && (
 
-      <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
+      <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-x-auto">
 
         <table className="w-full">
 
@@ -90,10 +115,10 @@ const TeamManagement = () => {
 
             <tr className="text-left text-sm">
 
-              <th className="p-3">Name</th>
+              <th className="p-3">User</th>
               <th className="p-3">Email</th>
               <th className="p-3">Role</th>
-              <th className="p-3"></th>
+              <th className="p-3">Action</th>
 
             </tr>
 
@@ -108,8 +133,16 @@ const TeamManagement = () => {
                 className="border-t border-slate-700 hover:bg-slate-800"
               >
 
-                <td className="p-3">
+                <td className="p-3 flex items-center gap-3">
+
+                  <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-sm">
+
+                    {user.name?.charAt(0).toUpperCase()}
+
+                  </div>
+
                   {user.name}
+
                 </td>
 
                 <td className="p-3 text-gray-400">
@@ -129,11 +162,14 @@ const TeamManagement = () => {
                 <td className="p-3">
 
                   <button
-                    onClick={()=>deleteUser(user._id)}
-                    className="bg-red-500 px-3 py-1 rounded text-sm"
+                    onClick={()=>handleDelete(user._id)}
+                    disabled={deleting===user._id}
+                    className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm disabled:opacity-50"
                   >
 
-                    Delete
+                    {deleting===user._id
+                      ? "Deleting..."
+                      : "Delete"}
 
                   </button>
 

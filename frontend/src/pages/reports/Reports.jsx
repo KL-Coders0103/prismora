@@ -1,47 +1,32 @@
 import { useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import API from "../../services/api";
+import { downloadReportFile } from "../../services/reportService";
 
 const Reports = () => {
 
-  const [loading, setLoading] = useState(null);
+  const [loading,setLoading] = useState(null);
+  const [error,setError] = useState("");
 
-  const downloadReport = async (type) => {
+  const handleDownload = async (type) => {
 
     setLoading(type);
+    setError("");
 
-    try {
+    try{
 
-      const res = await API.get(`/reports/${type}`, {
-        responseType: "blob"
-      });
+      await downloadReportFile(type);
 
-      const url = window.URL.createObjectURL(
-        new Blob([res.data])
-      );
+    }catch(err){
 
-      const link = document.createElement("a");
+      console.error(err);
 
-      link.href = url;
+      setError("Failed to download report");
 
-      link.setAttribute(
-        "download",
-        type === "sales"
-          ? "sales_report.xlsx"
-          : "sales_report.pdf"
-      );
+    }finally{
 
-      document.body.appendChild(link);
-
-      link.click();
-
-    } catch (error) {
-
-      console.error("Download error:", error);
+      setLoading(null);
 
     }
-
-    setLoading(null);
 
   };
 
@@ -50,75 +35,80 @@ const Reports = () => {
     <DashboardLayout>
 
       <h1 className="text-3xl font-bold mb-6">
-
         Reports
-
       </h1>
+
+      {error && (
+        <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
 
-        {/* Excel Report */}
+        <ReportCard
+          title="Sales Excel Report"
+          description="Download complete sales dataset in Excel format."
+          buttonText="Download Excel"
+          type="excel"
+          loading={loading}
+          color="bg-blue-500 hover:bg-blue-600"
+          onDownload={handleDownload}
+        />
 
-        <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-
-          <h3 className="text-lg font-semibold mb-2">
-
-            Sales Excel Report
-
-          </h3>
-
-          <p className="text-sm text-gray-400 mb-4">
-
-            Download complete sales dataset in Excel format.
-
-          </p>
-
-          <button
-            onClick={() => downloadReport("sales")}
-            className="bg-blue-500 px-4 py-2 rounded"
-          >
-
-            {loading === "sales"
-              ? "Downloading..."
-              : "Download Excel"}
-
-          </button>
-
-        </div>
-
-
-        {/* PDF Report */}
-
-        <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-
-          <h3 className="text-lg font-semibold mb-2">
-
-            Sales PDF Report
-
-          </h3>
-
-          <p className="text-sm text-gray-400 mb-4">
-
-            Export analytics summary in PDF format.
-
-          </p>
-
-          <button
-            onClick={() => downloadReport("pdf")}
-            className="bg-green-500 px-4 py-2 rounded"
-          >
-
-            {loading === "pdf"
-              ? "Downloading..."
-              : "Download PDF"}
-
-          </button>
-
-        </div>
+        <ReportCard
+          title="Sales PDF Report"
+          description="Export analytics summary in PDF format."
+          buttonText="Download PDF"
+          type="pdf"
+          loading={loading}
+          color="bg-green-500 hover:bg-green-600"
+          onDownload={handleDownload}
+        />
 
       </div>
 
     </DashboardLayout>
+
+  );
+
+};
+
+const ReportCard = ({
+  title,
+  description,
+  buttonText,
+  type,
+  loading,
+  color,
+  onDownload
+}) => {
+
+  return (
+
+    <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
+
+      <h3 className="text-lg font-semibold mb-2">
+        {title}
+      </h3>
+
+      <p className="text-sm text-gray-400 mb-4">
+        {description}
+      </p>
+
+      <button
+        onClick={() => onDownload(type)}
+        disabled={loading === type}
+        className={`${color} px-4 py-2 rounded disabled:opacity-50`}
+      >
+
+        {loading === type
+          ? "Downloading..."
+          : buttonText}
+
+      </button>
+
+    </div>
 
   );
 

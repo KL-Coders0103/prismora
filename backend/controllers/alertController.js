@@ -2,36 +2,47 @@ const Alert = require("../models/Alert");
 const { getIO } = require("../sockets/realtimeSocket");
 const { logActivity } = require("../services/activityService");
 
+exports.getAlerts = async (req,res)=>{
 
-// GET ALL ALERTS
-exports.getAlerts = async (req, res) => {
+  try{
 
-  try {
+    const limit = Number(req.query.limit) || 50;
 
     const alerts = await Alert.find()
-      .sort({ createdAt: -1 })
-      .limit(50);
+      .sort({ createdAt:-1 })
+      .limit(limit);
 
     res.json(alerts);
 
-  } catch (error) {
+  }catch(error){
 
     res.status(500).json({
-      error: error.message
+      message:"Failed to fetch alerts"
     });
 
   }
 
 };
 
+exports.createAlert = async (req,res)=>{
 
+  try{
 
-// CREATE ALERT
-exports.createAlert = async (req, res) => {
+    const { message,type,severity,source } = req.body;
 
-  try {
+    if(!message || message.length < 3){
+      return res.status(400).json({
+        message:"Valid alert message required"
+      });
+    }
 
-    const { message, type, severity, source } = req.body;
+    const allowedTypes = ["system","sales","ai"];
+
+    if(type && !allowedTypes.includes(type)){
+      return res.status(400).json({
+        message:"Invalid alert type"
+      });
+    }
 
     const alert = await Alert.create({
       message,
@@ -42,82 +53,98 @@ exports.createAlert = async (req, res) => {
 
     const io = getIO();
 
-    if (io) {
-      io.emit("alert", alert);
+    if(io){
+
+      io.emit("alert",{
+        id:alert._id,
+        message:alert.message,
+        type:alert.type,
+        severity:alert.severity,
+        createdAt:alert.createdAt
+      });
+
     }
 
     await logActivity(
       req.user?.id || null,
       "create_alert",
-      { message }
+      { message: message.substring(0,100) }
     );
 
     res.status(201).json(alert);
 
-  } catch (error) {
+  }catch(error){
+
+    console.error("CREATE ALERT ERROR:", error);
 
     res.status(500).json({
-      error: error.message
+      message:"Failed to create alert"
     });
 
   }
 
 };
 
+exports.markAsRead = async (req,res)=>{
 
-
-// MARK ALERT AS READ
-exports.markAsRead = async (req, res) => {
-
-  try {
+  try{
 
     const alert = await Alert.findByIdAndUpdate(
       req.params.id,
-      { isRead: true },
-      { new: true }
+      { isRead:true },
+      { new:true }
     );
 
-    if (!alert) {
+    if(!alert){
       return res.status(404).json({
-        message: "Alert not found"
+        message:"Alert not found"
       });
     }
 
+    await logActivity(
+      req.user?.id || null,
+      "alert_marked_read",
+      { alertId:req.params.id }
+    );
+
     res.json(alert);
 
-  } catch (error) {
+  }catch(error){
 
     res.status(500).json({
-      error: error.message
+      message:"Failed to update alert"
     });
 
   }
 
 };
 
+exports.deleteAlert = async (req,res)=>{
 
-
-// DELETE ALERT
-exports.deleteAlert = async (req, res) => {
-
-  try {
+  try{
 
     const alert = await Alert.findByIdAndDelete(req.params.id);
 
-    if (!alert) {
+    if(!alert){
       return res.status(404).json({
-        message: "Alert not found"
+        message:"Alert not found"
       });
     }
 
+    await logActivity(
+      req.user?.id || null,
+      "delete_alert",
+      { alertId:req.params.id }
+    );
+
     res.json({
-      message: "Alert deleted successfully"
+      message:"Alert deleted successfully"
     });
 
-  } catch (error) {
+  }catch(error){
 
     res.status(500).json({
-      error: error.message
+      message:"Failed to delete alert"
     });
 
   }

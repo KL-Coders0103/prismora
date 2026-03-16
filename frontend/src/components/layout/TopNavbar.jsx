@@ -4,11 +4,13 @@ import { motion as Motion, AnimatePresence } from "framer-motion";
 import API from "../../services/api";
 import socket from "../../services/socket";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthContext} from "../../context/AuthContext";
 
 const TopNavbar = ({ setOpen }) => {
 
+  const {user} = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [alerts, setAlerts] = useState([]);
@@ -199,7 +201,7 @@ const TopNavbar = ({ setOpen }) => {
             <User size={20} />
 
             <span className="text-sm hidden md:block">
-              Admin
+              {user?.role}
             </span>
 
           </button>

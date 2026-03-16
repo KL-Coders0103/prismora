@@ -9,23 +9,24 @@ const {
   updateProfile
 } = require("../controllers/profileController");
 
+const rateLimit = require("express-rate-limit");
 
+const profileLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20
+});
 
-// GET USER PROFILE
 router.get(
   "/",
   authMiddleware,
   getProfile
 );
 
-
-
-// UPDATE PROFILE
 router.put(
   "/",
   authMiddleware,
+  profileLimiter,
   updateProfile
 );
-
 
 module.exports = router;

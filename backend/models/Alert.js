@@ -1,39 +1,39 @@
 const mongoose = require("mongoose");
 
 const alertSchema = new mongoose.Schema(
-  {
-    message: {
-      type: String,
-      required: true,
-      trim: true
-    },
-
-    type: {
-      type: String,
-      enum: ["info", "warning", "critical"],
-      default: "info"
-    },
-
-    source: {
-      type: String,
-      enum: ["system", "analytics", "ai", "anomaly"],
-      default: "system"
-    },
-
-    severity: {
-      type: String,
-      enum: ["low", "medium", "high"],
-      default: "low"
-    },
-
-    isRead: {
-      type: Boolean,
-      default: false
-    }
+{
+  message: {
+    type: String,
+    required: true
   },
-  {
-    timestamps: true
+
+  type: {
+    type: String,
+    enum: ["system","sales","ai","analytics"],
+    default: "system"
+  },
+
+  severity: {
+    type: String,
+    enum: ["info","warning","critical"],
+    default: "info"
+  },
+
+  source: {
+    type: String,
+    enum: ["system","analytics_engine","ml_engine","user"],
+    default: "system"
+  },
+
+  isRead: {
+    type: Boolean,
+    default: false
   }
+
+},
+{
+  timestamps: true
+}
 );
 
 

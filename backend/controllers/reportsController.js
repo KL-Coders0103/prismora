@@ -2,14 +2,18 @@ const { generatePDFReport } = require("../services/pdfReportService");
 const { generateSalesReport } = require("../services/reportService");
 const { logActivity } = require("../services/activityService");
 
-
-
-// DOWNLOAD PDF REPORT
 exports.downloadPDF = async (req, res) => {
 
   try {
 
-    res.setHeader("Content-Type", "application/pdf");
+    await logActivity(
+      req.user?.id || null,
+      "download_pdf_report",
+      { type: "pdf" }
+    );
+
+    res.setHeader("Content-Type","application/pdf");
+
     res.setHeader(
       "Content-Disposition",
       "attachment; filename=business_report.pdf"
@@ -17,27 +21,31 @@ exports.downloadPDF = async (req, res) => {
 
     await generatePDFReport(res);
 
-    await logActivity(
-      req.user?.id || null,
-      "download_pdf_report"
-    );
-
   } catch (error) {
 
-    res.status(500).json({
-      error: error.message
-    });
+    console.error("PDF report error:", error);
+
+    if (!res.headersSent) {
+
+      res.status(500).json({
+        message:"Failed to generate PDF report"
+      });
+
+    }
 
   }
 
 };
 
-
-
-// DOWNLOAD EXCEL REPORT
 exports.downloadExcel = async (req, res) => {
 
   try {
+
+    await logActivity(
+      req.user?.id || null,
+      "download_excel_report",
+      { type:"excel" }
+    );
 
     const workbook = await generateSalesReport();
 
@@ -53,18 +61,19 @@ exports.downloadExcel = async (req, res) => {
 
     await workbook.xlsx.write(res);
 
-    await logActivity(
-      req.user?.id || null,
-      "download_excel_report"
-    );
-
     res.end();
 
   } catch (error) {
 
-    res.status(500).json({
-      error: error.message
-    });
+    console.error("Excel report error:", error);
+
+    if (!res.headersSent) {
+
+      res.status(500).json({
+        message:"Failed to generate Excel report"
+      });
+
+    }
 
   }
 

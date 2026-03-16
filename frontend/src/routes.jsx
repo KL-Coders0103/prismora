@@ -17,128 +17,51 @@ import TeamManagement from "./pages/team/TeamManagement";
 import ActivityLogs from "./pages/activity/ActivityLogs";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
+import Home from "./pages/home/Home";
 
 const AppRoutes = () => {
+
   return (
+
     <Routes>
 
-      {/* AUTH ROUTES */}
+      {/* PUBLIC */}
 
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* PROTECTED ROUTES */}
+      {/* ALL USERS */}
 
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<ProtectedRoute allowedRoles={["admin","analyst","viewer"]}/>}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
 
-      <Route
-        path="/ai-insights"
-        element={
-          <ProtectedRoute>
-            <AIInsights />
-          </ProtectedRoute>
-        }
-      />
+      {/* ANALYST + ADMIN */}
 
-      <Route
-        path="/ai-chat"
-        element={
-          <ProtectedRoute>
-            <AIChat />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<ProtectedRoute allowedRoles={["admin","analyst"]}/>}>
+        <Route path="/sales-analytics" element={<SalesAnalytics />} />
+        <Route path="/customer-analytics" element={<CustomerAnalytics />} />
+        <Route path="/upload-data" element={<UploadData />} />
+        <Route path="/alerts" element={<Alerts />} />
+        <Route path="/ai-insights" element={<AIInsights />} />
+        <Route path="/ai-chat" element={<AIChat />} />
+      </Route>
 
-      <Route
-        path="/sales-analytics"
-        element={
-          <ProtectedRoute>
-            <SalesAnalytics />
-          </ProtectedRoute>
-        }
-      />
+      {/* ADMIN ONLY */}
 
-      <Route
-        path="/customer-analytics"
-        element={
-          <ProtectedRoute>
-            <CustomerAnalytics />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/upload-data"
-        element={
-          <ProtectedRoute>
-            <UploadData />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute>
-            <Reports />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/alerts"
-        element={
-          <ProtectedRoute>
-            <Alerts />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/team"
-        element={
-          <ProtectedRoute>
-            <TeamManagement />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/activity"
-        element={
-          <ProtectedRoute>
-            <ActivityLogs />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<ProtectedRoute allowedRoles={["admin"]}/>}>
+        <Route path="/team" element={<TeamManagement />} />
+        <Route path="/activity" element={<ActivityLogs />} />
+      </Route>
 
     </Routes>
+
   );
+
 };
 
 export default AppRoutes;

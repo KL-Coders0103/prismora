@@ -10,21 +10,24 @@ const DashboardLayout = ({ children }) => {
 
   return (
 
-    <div className="flex h-screen bg-linear-to-br from-slate-950 to-slate-900 text-white">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 text-white">
 
-      {/* Sidebar */}
+      {/* Mobile Overlay */}
+
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/50 md:hidden z-30"
+          onClick={() => setOpen(false)}
+        />
+      )}
 
       <Sidebar open={open} setOpen={setOpen} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Navbar */}
-
         <TopNavbar setOpen={setOpen} />
 
-        {/* Page Content */}
-
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-8 space-y-8">
 
           <Motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -43,6 +46,7 @@ const DashboardLayout = ({ children }) => {
     </div>
 
   );
+
 };
 
 export default DashboardLayout;

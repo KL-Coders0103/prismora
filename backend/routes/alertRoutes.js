@@ -12,40 +12,40 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
+const rateLimit = require("express-rate-limit");
 
+const alertLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30
+});
 
-// GET ALERTS
 router.get(
   "/",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   getAlerts
 );
 
-
-// CREATE ALERT
 router.post(
   "/",
   authMiddleware,
-  roleMiddleware(["admin", "analyst"]),
+  roleMiddleware("admin","analyst"),
+  alertLimiter,
   createAlert
 );
 
-
-// MARK ALERT AS READ
 router.patch(
   "/:id/read",
   authMiddleware,
+  roleMiddleware("admin","analyst"),
   markAsRead
 );
 
-
-// DELETE ALERT
 router.delete(
   "/:id",
   authMiddleware,
   roleMiddleware("admin"),
   deleteAlert
 );
-
 
 module.exports = router;

@@ -6,15 +6,19 @@ const { getInsights } = require("../controllers/insightsController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
+const rateLimit = require("express-rate-limit");
 
+const insightsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30
+});
 
-// GET AI INSIGHTS
 router.get(
   "/",
   authMiddleware,
-  roleMiddleware(["admin", "analyst"]),
+  roleMiddleware("admin","analyst"),
+  insightsLimiter,
   getInsights
 );
-
 
 module.exports = router;

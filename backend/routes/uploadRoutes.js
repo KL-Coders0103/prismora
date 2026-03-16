@@ -1,5 +1,8 @@
 const express = require("express");
 const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+
 const router = express.Router();
 
 const { uploadCSV } = require("../controllers/uploadController");
@@ -7,51 +10,61 @@ const { uploadCSV } = require("../controllers/uploadController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
+const uploadDir = "uploads";
 
-// MULTER CONFIG
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, uploadDir);
   },
+
   filename: function (req, file, cb) {
+
     const uniqueName =
-      Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
+      Date.now() + "-" + file.originalname.replace(/\s+/g,"_");
+
     cb(null, uniqueName);
+
   }
 });
 
-
-// FILE FILTER (ONLY CSV)
 const fileFilter = (req, file, cb) => {
 
-  if (file.mimetype === "text/csv") {
-    cb(null, true);
+  const allowedTypes = [
+    "text/csv",
+    "application/vnd.ms-excel"
+  ];
+
+  const ext = path.extname(file.originalname);
+
+  if (allowedTypes.includes(file.mimetype) || ext === ".csv") {
+    cb(null,true);
   } else {
-    cb(new Error("Only CSV files are allowed"), false);
+    cb(new Error("Only CSV files allowed"),false);
   }
 
 };
 
-
-// UPLOAD LIMIT
 const upload = multer({
+
   storage,
   fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
+
+  limits:{
+    fileSize:10*1024*1024
   }
+
 });
 
-
-
-// DATASET UPLOAD
 router.post(
   "/csv",
   authMiddleware,
-  roleMiddleware(["admin", "analyst"]),
+  roleMiddleware("admin","analyst"),
   upload.single("file"),
   uploadCSV
 );
-
 
 module.exports = router;

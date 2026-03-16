@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import API from "../../services/api";
+import { getActivityLogs } from "../../services/activityService";
 
 const getIcon = (action) => {
 
-  if(action.includes("login")) return "🔑";
-  if(action.includes("upload")) return "📤";
-  if(action.includes("download")) return "📥";
+  if(action?.includes("login")) return "🔑";
+  if(action?.includes("upload")) return "📤";
+  if(action?.includes("download")) return "📥";
 
   return "📌";
 
@@ -16,6 +16,7 @@ const ActivityLogs = () => {
 
   const [logs,setLogs] = useState([]);
   const [loading,setLoading] = useState(true);
+  const [error,setError] = useState(null);
 
   useEffect(()=>{
 
@@ -23,13 +24,15 @@ const ActivityLogs = () => {
 
       try{
 
-        const res = await API.get("/activity");
+        const data = await getActivityLogs();
 
-        setLogs(res.data);
+        setLogs(data.slice(0,100));
 
-      }catch(error){
+      }catch(err){
 
-        console.error("Activity logs error",error);
+        console.error(err);
+
+        setError("Failed to load activity logs");
 
       }finally{
 
@@ -51,12 +54,17 @@ const ActivityLogs = () => {
         Activity Logs
       </h1>
 
+      {error && (
+        <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
       {loading && (
-
-        <p className="text-gray-400">
-          Loading activity logs...
-        </p>
-
+        <div className="space-y-3">
+          <div className="h-16 bg-slate-800 animate-pulse rounded"></div>
+          <div className="h-16 bg-slate-800 animate-pulse rounded"></div>
+        </div>
       )}
 
       {!loading && logs.length===0 && (
@@ -67,26 +75,36 @@ const ActivityLogs = () => {
 
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[600px] overflow-y-auto">
 
-        {logs.map((log,index)=>(
+        {logs.map((log)=>(
 
           <div
-            key={index}
+            key={log._id}
             className="bg-slate-900 border border-slate-700 p-4 rounded-lg flex justify-between"
           >
 
-            <div>
+            <div className="flex items-center gap-3">
 
-              <div className="font-semibold">
+              <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-sm">
 
-                {getIcon(log.action)} {log.user}
+                {log.user?.name?.charAt(0) || "S"}
 
               </div>
 
-              <div className="text-sm text-gray-400">
+              <div>
 
-                {log.action}
+                <div className="font-semibold">
+
+                  {getIcon(log.action)} {log.user?.name || "System"}
+
+                </div>
+
+                <div className="text-sm text-gray-400">
+
+                  {log.action}
+
+                </div>
 
               </div>
 

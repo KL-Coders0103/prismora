@@ -3,11 +3,15 @@ const Sales = require("../models/Sales");
 
 exports.generateSalesReport = async () => {
 
-  const data = await Sales.find();
+  const data = await Sales.find().lean();
 
   const workbook = new ExcelJS.Workbook();
 
+  workbook.creator = "PRISMORA";
+  workbook.created = new Date();
+
   // ===== SUMMARY SHEET =====
+
   const summarySheet = workbook.addWorksheet("Summary");
 
   const totalRevenue = data.reduce((sum, item) => sum + item.revenue, 0);
@@ -19,12 +23,18 @@ exports.generateSalesReport = async () => {
     { header: "Value", key: "value", width: 20 }
   ];
 
+  summarySheet.getRow(1).font = { bold: true };
+
   summarySheet.addRow({ metric: "Total Revenue", value: totalRevenue });
   summarySheet.addRow({ metric: "Total Units Sold", value: totalSales });
   summarySheet.addRow({ metric: "Total Records", value: totalRecords });
 
+  summarySheet.getColumn(2).alignment = { horizontal: "right" };
+
+
 
   // ===== SALES DATA SHEET =====
+
   const sheet = workbook.addWorksheet("Sales Data");
 
   sheet.columns = [
@@ -36,13 +46,14 @@ exports.generateSalesReport = async () => {
     { header: "Region", key: "region", width: 15 }
   ];
 
-  // HEADER STYLE
   sheet.getRow(1).font = { bold: true };
 
   data.forEach(item => {
 
     sheet.addRow({
-      date: item.date,
+      date: item.date
+        ? new Date(item.date).toISOString().split("T")[0]
+        : "",
       product: item.product,
       category: item.category,
       quantity: item.quantity,
@@ -51,6 +62,9 @@ exports.generateSalesReport = async () => {
     });
 
   });
+
+  sheet.getColumn("quantity").alignment = { horizontal: "right" };
+  sheet.getColumn("revenue").alignment = { horizontal: "right" };
 
   return workbook;
 

@@ -15,8 +15,9 @@ import socket from "../../services/socket";
 const Dashboard = () => {
 
   const [stats, setStats] = useState(null);
-  const [alert, setAlert] = useState(null);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error,setError] = useState(null);
 
   useEffect(() => {
 
@@ -30,7 +31,9 @@ const Dashboard = () => {
 
       } catch (err) {
 
-        console.error("Dashboard error:", err);
+        console.error(err);
+
+        setError("Failed to load dashboard");
 
       } finally {
 
@@ -44,7 +47,7 @@ const Dashboard = () => {
 
     socket.on("alert", (alert) => {
 
-      setAlert(alert.message);
+      setAlerts(prev => [alert, ...prev]);
 
     });
 
@@ -52,21 +55,49 @@ const Dashboard = () => {
 
   }, []);
 
+  const dismissAlert = (index)=>{
+
+    setAlerts(prev => prev.filter((_,i)=> i !== index));
+
+  };
+
   return (
 
     <DashboardLayout>
 
-      {/* Alert Banner */}
+      {/* Error */}
 
-      {alert && (
+      {error && (
 
-        <div className="bg-red-500 text-white p-3 rounded mb-4">
+        <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4">
 
-          ⚠ {alert}
+          {error}
 
         </div>
 
       )}
+
+      {/* Alerts */}
+
+      {alerts.map((a,index)=>(
+
+        <div
+          key={index}
+          className="flex justify-between items-center bg-red-500 text-white p-3 rounded mb-3"
+        >
+
+          <span>⚠ {a.message}</span>
+
+          <button
+            onClick={()=>dismissAlert(index)}
+            className="text-sm"
+          >
+            ✕
+          </button>
+
+        </div>
+
+      ))}
 
       {/* Title */}
 
@@ -81,32 +112,36 @@ const Dashboard = () => {
       </Motion.h1>
 
 
-      {/* KPI Cards */}
+      {/* KPI CARDS */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
 
         <KPICard
           title="Revenue"
-          value={loading ? "..." : stats?.revenue}
-          change="+12%"
+          value={loading ? "..." : `${stats?.revenue || 0}`}
+          change={stats?.revenueChange}
+          loading={loading}
         />
 
         <KPICard
           title="Sales"
-          value={loading ? "..." : stats?.sales}
-          change="+8%"
+          value={loading ? "..." : `${stats?.sales || 0}`}
+          change={stats?.salesChange}
+          loading={loading}
         />
 
         <KPICard
           title="Customers"
-          value={loading ? "..." : stats?.customers}
-          change="+5%"
+          value={loading ? "..." : `${stats?.customers || 0}`}
+          change={stats?.customerChange}
+          loading={loading}
         />
 
         <KPICard
           title="Conversion Rate"
-          value={loading ? "..." : stats?.conversionRate}
-          change="+1.2%"
+          value={loading ? "..." : `${stats?.conversionRate || 0}`}
+          change={stats?.conversionChange}
+          loading={loading}
         />
 
       </div>
@@ -114,16 +149,16 @@ const Dashboard = () => {
 
       {/* Revenue Chart */}
 
-      <RevenueChart />
+      <RevenueChart data={stats?.revenueData} loading={loading} />
 
 
       {/* Charts */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
 
-        <SalesChart />
+        <SalesChart data={stats?.salesData} loading={loading} />
 
-        <CustomerChart />
+        <CustomerChart data={stats?.customerData} loading={loading} />
 
       </div>
 
@@ -132,7 +167,7 @@ const Dashboard = () => {
 
       <div className="mt-6">
 
-        <HeatMap />
+        <HeatMap data={stats?.heatmapData} loading={loading} />
 
       </div>
 

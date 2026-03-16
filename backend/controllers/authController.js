@@ -8,7 +8,7 @@ exports.register = async (req, res) => {
 
   try {
 
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -27,7 +27,8 @@ exports.register = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password
+      password,
+      role
     });
 
     await logActivity(user._id, "user_register", {
@@ -85,6 +86,12 @@ exports.login = async (req, res) => {
       });
     }
 
+    if (!user.isActive) {
+  return res.status(403).json({
+    message: "Account disabled"
+  });
+}
+
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -108,6 +115,8 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
+
+    console.log("",error);
 
     res.status(500).json({
       error: error.message
@@ -153,7 +162,9 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
-    await logActivity(req.params.id, "user_deleted");
+    await logActivity(req.params.id, "user_deleted", {
+      deleteUser: req.params.id
+    });
 
     res.json({
       message: "User deleted successfully"

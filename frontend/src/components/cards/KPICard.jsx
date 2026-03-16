@@ -1,23 +1,67 @@
 import { motion as Motion } from "framer-motion";
-import CountUp from "react-countup";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  IndianRupee,
+  ShoppingCart,
+  Users,
+  Percent
+} from "lucide-react";
+
+const formatINR = (value) => {
+
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0
+  }).format(value);
+
+};
+
+const iconMap = {
+  Revenue: IndianRupee,
+  Sales: ShoppingCart,
+  Customers: Users,
+  "Conversion Rate": Percent
+};
+
+const colorMap = {
+  Revenue: "from-green-500/20 to-green-600/10 border-green-500/30",
+  Sales: "from-blue-500/20 to-blue-600/10 border-blue-500/30",
+  Customers: "from-purple-500/20 to-purple-600/10 border-purple-500/30",
+  "Conversion Rate": "from-orange-500/20 to-orange-600/10 border-orange-500/30"
+};
 
 const KPICard = ({ title, value, change }) => {
 
-  const isPositive = change.includes("+");
+  const Icon = iconMap[title];
+
+  const isPositive = change?.includes("+");
+
+  let displayValue = value;
+
+  if (title === "Revenue") displayValue = formatINR(value);
+  if (title === "Conversion Rate") displayValue = `${value}%`;
 
   return (
+
     <Motion.div
-      whileHover={{ scale: 1.05 }}
-      className="bg-slate-900 border border-slate-700 rounded-xl p-5
-                 shadow-lg hover:border-blue-500 transition-all duration-300"
+      whileHover={{ scale: 1.04 }}
+      className={`bg-gradient-to-br ${colorMap[title]}
+      border rounded-xl p-6 shadow-lg backdrop-blur-lg`}
     >
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
 
-        <h3 className="text-sm text-gray-400">
-          {title}
-        </h3>
+        <div className="flex items-center gap-2">
+
+          <Icon size={18} className="text-white opacity-80" />
+
+          <h3 className="text-sm text-gray-300">
+            {title}
+          </h3>
+
+        </div>
 
         {isPositive ? (
           <TrendingUp size={18} className="text-green-400" />
@@ -27,12 +71,9 @@ const KPICard = ({ title, value, change }) => {
 
       </div>
 
-      <h2 className="text-3xl font-bold mt-2">
+      <h2 className="text-3xl font-bold text-white">
 
-        <CountUp
-          end={parseFloat(value)}
-          duration={1.5}
-        />
+        {displayValue}
 
       </h2>
 
@@ -45,7 +86,9 @@ const KPICard = ({ title, value, change }) => {
       </p>
 
     </Motion.div>
+
   );
+
 };
 
 export default KPICard;

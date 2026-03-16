@@ -20,7 +20,7 @@ const activitySchema = new mongoose.Schema(
     },
 
     metadata: {
-      type: Object,
+      type: mongoose.Schema.Types.Mixed,
       default: {}
     }
   },

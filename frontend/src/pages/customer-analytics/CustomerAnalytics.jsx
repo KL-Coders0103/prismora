@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
-import API from "../../services/api";
 
 import {
   PieChart,
@@ -11,12 +10,22 @@ import {
   Legend
 } from "recharts";
 
-const COLORS = ["#3b82f6","#22c55e","#f59e0b","#ef4444"];
+import { getCustomerByRegion } from "../../services/analyticsService";
+
+const COLORS = [
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4"
+];
 
 const CustomerAnalytics = () => {
 
   const [data,setData] = useState([]);
   const [loading,setLoading] = useState(true);
+  const [error,setError] = useState(null);
 
   useEffect(()=>{
 
@@ -24,9 +33,9 @@ const CustomerAnalytics = () => {
 
       try{
 
-        const res = await API.get("/analytics/customer-region");
+        const result = await getCustomerByRegion();
 
-        const formatted = res.data.map(item=>({
+        const formatted = result.map(item=>({
 
           name:item._id,
           value:item.customers
@@ -35,9 +44,11 @@ const CustomerAnalytics = () => {
 
         setData(formatted);
 
-      }catch(error){
+      }catch(err){
 
-        console.error("Customer analytics error",error);
+        console.error(err);
+
+        setError("Failed to load customer analytics");
 
       }finally{
 
@@ -59,19 +70,29 @@ const CustomerAnalytics = () => {
         Customer Analytics
       </h1>
 
-      {loading && (
-        <p className="text-gray-400">
-          Loading analytics...
-        </p>
+      {error && (
+        <div className="bg-red-500/20 text-red-400 p-3 rounded mb-4">
+          {error}
+        </div>
       )}
-
-      {!loading && (
 
       <div className="bg-slate-900 border border-slate-700 p-6 rounded-xl">
 
         <h2 className="mb-4">
           Customers by Region
         </h2>
+
+        {loading && (
+          <div className="animate-pulse h-72 bg-slate-800 rounded"></div>
+        )}
+
+        {!loading && data.length === 0 && (
+          <p className="text-gray-400 text-sm">
+            No customer data available
+          </p>
+        )}
+
+        {!loading && data.length > 0 && (
 
         <ResponsiveContainer width="100%" height={320}>
 
@@ -82,12 +103,13 @@ const CustomerAnalytics = () => {
               dataKey="value"
               innerRadius={60}
               outerRadius={100}
+              paddingAngle={3}
             >
 
               {data.map((entry,index)=>(
 
                 <Cell
-                  key={index}
+                  key={entry.name}
                   fill={COLORS[index % COLORS.length]}
                 />
 
@@ -98,7 +120,8 @@ const CustomerAnalytics = () => {
             <Tooltip
               contentStyle={{
                 backgroundColor:"#0f172a",
-                border:"1px solid #334155"
+                border:"1px solid #334155",
+                borderRadius:"8px"
               }}
             />
 
@@ -108,9 +131,9 @@ const CustomerAnalytics = () => {
 
         </ResponsiveContainer>
 
-      </div>
+        )}
 
-      )}
+      </div>
 
     </DashboardLayout>
 
