@@ -6,7 +6,10 @@ exports.generateInsights = async () => {
 
   try {
 
+    // ===============================
     // HIGH REVENUE REGION
+    // ===============================
+
     const revenueByRegion = await Sales.aggregate([
       {
         $group: {
@@ -22,7 +25,7 @@ exports.generateInsights = async () => {
 
         insights.push({
           title: "High Revenue Region",
-          description: `${region._id} region generated high revenue`,
+          description: `${region._id} region generated strong revenue performance`,
           type: "trend",
           confidence: 85
         });
@@ -32,7 +35,10 @@ exports.generateInsights = async () => {
     });
 
 
+    // ===============================
     // LOW PERFORMING CATEGORY
+    // ===============================
+
     const categorySales = await Sales.aggregate([
       {
         $group: {
@@ -48,7 +54,7 @@ exports.generateInsights = async () => {
 
         insights.push({
           title: "Low Performing Category",
-          description: `${cat._id} category has low sales`,
+          description: `${cat._id} category sales are very low`,
           type: "recommendation",
           confidence: 78
         });
@@ -58,7 +64,10 @@ exports.generateInsights = async () => {
     });
 
 
+    // ===============================
     // TOP PRODUCT
+    // ===============================
+
     const topProduct = await Sales.aggregate([
       {
         $group: {
@@ -74,7 +83,7 @@ exports.generateInsights = async () => {
 
       insights.push({
         title: "Top Selling Product",
-        description: `${topProduct[0]._id} is currently the top selling product`,
+        description: `Product ${topProduct[0]._id} has the highest sales`,
         type: "trend",
         confidence: 90
       });
@@ -82,7 +91,10 @@ exports.generateInsights = async () => {
     }
 
 
+    // ===============================
     // MONTHLY REVENUE TREND
+    // ===============================
+
     const monthlyRevenue = await Sales.aggregate([
       {
         $group: {
@@ -90,7 +102,7 @@ exports.generateInsights = async () => {
           revenue: { $sum: "$revenue" }
         }
       },
-      { $sort: { _id: 1 } }
+      { $sort: { "_id": 1 } }
     ]);
 
     if (monthlyRevenue.length >= 2) {
@@ -107,7 +119,43 @@ exports.generateInsights = async () => {
           confidence: 88
         });
 
+      } else {
+
+        insights.push({
+          title: "Revenue Drop Detected",
+          description: "Revenue decreased compared to the previous month",
+          type: "anomaly",
+          confidence: 82
+        });
+
       }
+
+    }
+
+
+    // ===============================
+    // HIGH DEMAND CATEGORY
+    // ===============================
+
+    const topCategory = await Sales.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          quantity: { $sum: "$quantity" }
+        }
+      },
+      { $sort: { quantity: -1 } },
+      { $limit: 1 }
+    ]);
+
+    if (topCategory.length > 0) {
+
+      insights.push({
+        title: "High Demand Category",
+        description: `${topCategory[0]._id} category has the highest demand`,
+        type: "trend",
+        confidence: 87
+      });
 
     }
 

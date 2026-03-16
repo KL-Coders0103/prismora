@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+numpy
+scikit-learn
+joblib
+python-multipart
+pydantic
+matplotlib
+seaborn
+flask
+prophet
+flask-cors
+matplotlib

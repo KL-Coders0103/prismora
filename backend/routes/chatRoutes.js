@@ -9,10 +9,20 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 
 const rateLimit = require("express-rate-limit");
 
+
+// AI chat rate limiter
 const chatLimiter = rateLimit({
+
   windowMs: 60 * 1000,
-  max: 20
+
+  max: 15,
+
+  message: {
+    message: "Too many AI chat requests. Please try again later."
+  }
+
 });
+
 
 router.post(
   "/",
@@ -21,5 +31,6 @@ router.post(
   chatLimiter,
   chatQuery
 );
+
 
 module.exports = router;

@@ -24,7 +24,7 @@ router.get(
 router.get(
   "/revenue/monthly",
   authMiddleware,
-  roleMiddleware("admin","analyst"),
+  roleMiddleware("admin","analyst", "viewer"),
   monthlyRevenue
 );
 
