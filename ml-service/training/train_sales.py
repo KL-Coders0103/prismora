@@ -2,53 +2,38 @@ import pandas as pd
 from prophet import Prophet
 import joblib
 import os
+import logging
 
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
-
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "ecommerce_data.csv")
-MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "sales_model.pkl")
-
-
-def load_data():
-
-    df = pd.read_csv(DATA_PATH)
-
-    df["date"] = pd.to_datetime(df["date"])
-
-    return df
-
+# Setup Paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "data", "ecommerce_data.csv")
+MODEL_PATH = os.path.join(BASE_DIR, "models", "sales_model.pkl")
 
 def train_sales_model():
+    if not os.path.exists(DATA_PATH):
+        raise FileNotFoundError(f"Training data not found at {DATA_PATH}")
 
-    df = load_data()
+    df = pd.read_csv(DATA_PATH)
+    df["date"] = pd.to_datetime(df["date"])
 
-    if "date" not in df.columns or "revenue" not in df.columns:
-        raise Exception("Dataset must contain date and revenue columns")
-
+    # Aggregate to daily revenue
     daily_sales = df.groupby("date")["revenue"].sum().reset_index()
-
     daily_sales.columns = ["ds", "y"]
 
+    # Initialize Prophet with robust seasonality
     model = Prophet(
         growth="linear",
-        daily_seasonality=True,
+        yearly_seasonality=True,
         weekly_seasonality=True,
-        yearly_seasonality=True
+        daily_seasonality=False # Set to false for daily aggregated data
     )
-
+    
+    print("🚀 Training Sales Forecast Model (Prophet)...")
     model.fit(daily_sales)
 
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-
     joblib.dump(model, MODEL_PATH)
-
-    print("Sales forecasting model trained and saved.")
-
-    return model
-
+    print(f"✅ Sales model saved to {MODEL_PATH}")
 
 if __name__ == "__main__":
-
     train_sales_model()

@@ -1,14 +1,13 @@
 {
-  "name": "backend",
+  "name": "prismora-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["analytics", "ai", "dashboard", "api"],
+  "author": "PRISMORA Engineering",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.13.6",
@@ -32,5 +31,5 @@
   "devDependencies": {
     "nodemon": "^3.1.14"
   },
-  "description": ""
+  "description": "API Gateway for PRISMORA AI Analytics"
 }

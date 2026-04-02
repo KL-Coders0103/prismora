@@ -1,117 +1,78 @@
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
-} from "recharts";
+import React from "react";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useTheme } from "../../context/ThemeContext";
 
-import { useEffect, useState } from "react";
-import { getMonthlyRevenue } from "../../services/analyticsService";
+const RevenueChart = ({ data = [], loading }) => {
+  const { theme } = useTheme();
 
-const RevenueChart = () => {
+  // Dynamic colors for Recharts based on Tailwind global theme
+  const gridColor = theme === "dark" ? "#334155" : "#e2e8f0";
+  const axisColor = theme === "dark" ? "#94a3b8" : "#64748b";
+  const tooltipBg = theme === "dark" ? "#0f172a" : "#ffffff";
+  const tooltipBorder = theme === "dark" ? "#334155" : "#e2e8f0";
 
-  const [data,setData] = useState([]);
-  const [loading,setLoading] = useState(true);
-
-  useEffect(()=>{
-
-    const load = async ()=>{
-
-      try{
-
-        const res = await getMonthlyRevenue();
-
-        const formatted = res.map(item=>({
-          month:item._id,
-          revenue:item.revenue
-        }));
-
-        setData(formatted);
-
-      }catch(err){
-
-        console.error(err);
-
-      }finally{
-
-        setLoading(false);
-
-      }
-
-    }
-
-    load();
-
-  },[]);
-
-  if(loading){
-
+  if (loading) {
     return (
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-        <h2 className="text-lg font-bold mb-4">Revenue Trend</h2>
-        <div className="animate-pulse h-72 bg-slate-800 rounded"></div>
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Revenue Trend</h2>
+        <div className="h-72 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800"></div>
       </div>
     );
-
   }
 
-  if(data.length === 0){
-
+  if (!data || data.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-        <h2 className="text-lg font-bold mb-4">Revenue Trend</h2>
-        <p className="text-gray-400 text-sm">No revenue data available</p>
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Revenue Trend</h2>
+        <div className="flex h-72 items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+          No revenue data available for this period.
+        </div>
       </div>
     );
-
   }
+
+  // Map backend `_id` to `month` if needed
+  const chartData = data[0]?.month ? data : data.map(item => ({ month: item._id || "N/A", revenue: item.revenue || 0 }));
 
   return (
-
-    <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-
-      <h2 className="text-lg font-bold mb-4">
-        Revenue Trend
-      </h2>
-
-      <ResponsiveContainer width="100%" height={320}>
-
-        <AreaChart data={data}>
-
-        <CartesianGrid stroke="#1e293b"/>
-
-        <XAxis dataKey="month"/>
-
-        <YAxis/>
-
-        <Tooltip
-          formatter={(value)=>
-            new Intl.NumberFormat("en-IN",{
-              style:"currency",
-              currency:"INR"
-            }).format(value)
-          }
-          />
-
-        <Area
-          type="monotone"
-          dataKey="revenue"
-          stroke="#3b82f6"
-          fill="#3b82f6"
-          fillOpacity={0.25}
-        />
-
-        </AreaChart>
-
-      </ResponsiveContainer>
-
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-colors duration-300">
+      <h2 className="mb-6 text-lg font-bold text-gray-900 dark:text-white">Revenue Trend</h2>
+      <div className="h-[320px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+            <XAxis dataKey="month" stroke={axisColor} axisLine={false} tickLine={false} dy={10} />
+            <YAxis 
+              stroke={axisColor} 
+              axisLine={false} 
+              tickLine={false} 
+              tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`} 
+            />
+            <Tooltip
+              contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "8px", color: theme === 'dark' ? '#fff' : '#000' }}
+              itemStyle={{ color: '#4f46e5', fontWeight: 600 }}
+              formatter={(value) => [new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(value), "Revenue"]}
+            />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="#4f46e5"
+              strokeWidth={3}
+              fillOpacity={1}
+              fill="url(#colorRevenue)"
+              animationDuration={1000}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-
   );
-
 };
 
 export default RevenueChart;

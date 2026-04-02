@@ -15,59 +15,15 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 
-router.get(
-  "/dashboard",
-  authMiddleware,
-  dashboardSummary
-);
+// Dashboard applies to all authenticated roles
+router.get("/dashboard", authMiddleware, roleMiddleware("admin", "analyst", "viewer"), dashboardSummary);
 
-router.get(
-  "/revenue/monthly",
-  authMiddleware,
-  roleMiddleware("admin","analyst", "viewer"),
-  monthlyRevenue
-);
-
-router.get(
-  "/sales/category",
-  authMiddleware,
-  roleMiddleware("admin","analyst"),
-  salesByCategory
-);
-
-router.get(
-  "/sales/region",
-  authMiddleware,
-  roleMiddleware("admin","analyst"),
-  salesByRegion
-);
-
-router.get(
-  "/products/top",
-  authMiddleware,
-  roleMiddleware("admin","analyst"),
-  topProducts
-);
-
-router.get(
-  "/products/performance",
-  authMiddleware,
-  roleMiddleware("admin","analyst"),
-  productPerformance
-);
-
-router.get(
-  "/customers/region",
-  authMiddleware,
-  roleMiddleware("admin","analyst"),
-  customerByRegion
-);
-
-router.get(
-  "/customers/revenue",
-  authMiddleware,
-  roleMiddleware("admin","analyst"),
-  customerRevenue
-);
+router.get("/revenue/monthly", authMiddleware, roleMiddleware("admin", "analyst", "viewer"), monthlyRevenue);
+router.get("/sales/category", authMiddleware, roleMiddleware("admin", "analyst"), salesByCategory);
+router.get("/sales/region", authMiddleware, roleMiddleware("admin", "analyst"), salesByRegion);
+router.get("/products/top", authMiddleware, roleMiddleware("admin", "analyst"), topProducts);
+router.get("/products/performance", authMiddleware, roleMiddleware("admin", "analyst"), productPerformance);
+router.get("/customers/region", authMiddleware, roleMiddleware("admin", "analyst"), customerByRegion);
+router.get("/customers/revenue", authMiddleware, roleMiddleware("admin", "analyst"), customerRevenue);
 
 module.exports = router;

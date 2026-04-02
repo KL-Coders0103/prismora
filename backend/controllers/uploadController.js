@@ -1,53 +1,39 @@
+const fs = require("fs");
 const parseCSV = require("../utils/csvParser");
 const Sales = require("../models/Sales");
-const fs = require("fs");
-
-const { logActivity } = require("../services/activityService");
 const AnalyticsSummary = require("../models/AnalyticsSummary");
+const { logActivity } = require("../services/activityService"); // Assuming this exists
 
 exports.uploadCSV = async (req, res) => {
-
   let filePath;
 
   try {
-
     if (!req.file) {
-      return res.status(400).json({
-        message: "No file uploaded"
-      });
+      return res.status(400).json({ message: "No file uploaded. Please select a CSV file." });
     }
 
     filePath = req.file.path;
 
-    const csvData = await parseCSV(filePath);
+    // 1. Parse and sanitize the CSV (filtering is handled inside parseCSV)
+    const validData = await parseCSV(filePath);
 
-    if (csvData.length === 0) {
-      return res.status(400).json({
-        message: "CSV file empty"
-      });
+    if (validData.length === 0) {
+      return res.status(400).json({ message: "CSV file is empty or contains no valid data rows." });
     }
 
-    if (csvData.length > 50000) {
-      return res.status(400).json({
-        message: "Dataset too large (max 50k rows)"
-      });
+    if (validData.length > 50000) {
+      return res.status(400).json({ message: "Dataset too large. Maximum allowed is 50,000 rows per upload." });
     }
 
-    const formattedData = csvData.filter(row =>
-      row.date &&
-      row.product &&
-      row.category &&
-      !isNaN(row.quantity) &&
-      !isNaN(row.revenue) &&
-      row.region
-    );
+    // 2. Batch Insertion (Crucial for Node.js memory management)
+    // Inserts in chunks of 5000 to prevent event loop blocking
+    const BATCH_SIZE = 5000;
+    for (let i = 0; i < validData.length; i += BATCH_SIZE) {
+      const batch = validData.slice(i, i + BATCH_SIZE);
+      await Sales.insertMany(batch);
+    }
 
-    const inserted = await Sales.insertMany(formattedData);
-
-    console.log("Inserted rows:", inserted.length);
-
-    // UPDATE ANALYTICS SUMMARY
-
+    // 3. Recalculate Analytics Summary securely
     const summaryAgg = await Sales.aggregate([
       {
         $group: {
@@ -59,7 +45,8 @@ exports.uploadCSV = async (req, res) => {
       }
     ]);
 
-    const summary = summaryAgg[0];
+    // Safety fallback if aggregation is empty
+    const summary = summaryAgg[0] || { revenue: 0, sales: 0, regions: [] };
 
     await AnalyticsSummary.findOneAndUpdate(
       {},
@@ -72,35 +59,29 @@ exports.uploadCSV = async (req, res) => {
       { upsert: true }
     );
 
-    await logActivity(
-      req.user.id,
-      "dataset_uploaded",
-      {
-        filename: req.file.originalname,
-        records: formattedData.length
-      }
-    );
-
-    res.json({
-      message: "Dataset uploaded successfully",
-      records: formattedData.length
+    // 4. Log Activity (Safely checking if req.user exists)
+    const userId = req.user?.id || req.user?._id || "system";
+    await logActivity(userId, "dataset_uploaded", {
+      filename: req.file.originalname,
+      records: validData.length
     });
 
-    console.log("CSV rows:", csvData.length);
-    console.log("Formatted rows:", formattedData.length);
+    res.status(200).json({
+      message: "Dataset processed and integrated successfully.",
+      recordsProcessed: validData.length
+    });
 
   } catch (error) {
-
-    res.status(500).json({
-      error: error.message
-    });
-
+    console.error("[Upload Error]:", error);
+    res.status(500).json({ error: "An internal server error occurred during processing." });
   } finally {
-
+    // 5. Bulletproof Cleanup
     if (filePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+      try {
+        fs.unlinkSync(filePath);
+      } catch (cleanupError) {
+        console.error("Failed to delete temp file:", cleanupError);
+      }
     }
-
   }
-
 };

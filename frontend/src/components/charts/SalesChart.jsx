@@ -1,127 +1,49 @@
-import { useEffect, useState } from "react";
+import React from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
+import { useTheme } from "../../context/ThemeContext";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
-} from "recharts";
+const SalesChart = ({ data = [], loading }) => {
+  const { theme } = useTheme();
 
-import { getSalesByCategory } from "../../services/analyticsService";
-
-const SalesChart = () => {
-
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-
-    const loadData = async () => {
-
-      try {
-
-        const result = await getSalesByCategory();
-
-        const formatted = result
-          .map(item => ({
-            category: item._id,
-            sales: item.totalSales
-          }))
-          .sort((a,b) => b.sales - a.sales);
-
-        setData(formatted);
-
-      } catch (error) {
-
-        console.error("Sales chart error:", error);
-
-      } finally {
-
-        setLoading(false);
-
-      }
-
-    };
-
-    loadData();
-
-  }, []);
-
+  const gridColor = theme === "dark" ? "#334155" : "#e2e8f0";
+  const axisColor = theme === "dark" ? "#94a3b8" : "#64748b";
+  const tooltipBg = theme === "dark" ? "#0f172a" : "#ffffff";
+  const tooltipBorder = theme === "dark" ? "#334155" : "#e2e8f0";
 
   if (loading) {
-
     return (
-
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-
-        <h2 className="text-lg font-bold mb-4">
-          Sales by Category
-        </h2>
-
-        <div className="animate-pulse h-72 bg-slate-800 rounded"></div>
-
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Sales by Category</h2>
+        <div className="h-72 w-full animate-pulse rounded bg-gray-100 dark:bg-gray-800"></div>
       </div>
-
     );
-
   }
 
+  const chartData = data[0]?.category ? data : data.map(item => ({ category: item._id || "N/A", sales: item.totalSales || 0 })).sort((a, b) => b.sales - a.sales);
+
   return (
-
-    <div className="bg-slate-900 border border-slate-700 rounded-xl p-6">
-
-      <h2 className="text-lg font-bold mb-4">
-        Sales by Category
-      </h2>
-
-      <ResponsiveContainer width="100%" height={320}>
-
-        <BarChart data={data}>
-
-          <defs>
-
-            <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
-
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.4} />
-
-            </linearGradient>
-
-          </defs>
-
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-
-          <XAxis dataKey="category" stroke="#94a3b8" />
-
-          <YAxis stroke="#94a3b8" />
-
-          <Tooltip
-            contentStyle={{
-              backgroundColor:"#0f172a",
-              border:"1px solid #334155",
-              borderRadius:"8px"
-            }}
-          />
-
-          <Bar
-            dataKey="sales"
-            fill="url(#salesGradient)"
-            radius={[6,6,0,0]}
-            animationDuration={800}
-          />
-
-        </BarChart>
-
-      </ResponsiveContainer>
-
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-colors duration-300">
+      <h2 className="mb-6 text-lg font-bold text-gray-900 dark:text-white">Sales by Category</h2>
+      <div className="h-[320px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+            <XAxis dataKey="category" stroke={axisColor} axisLine={false} tickLine={false} dy={10} />
+            <YAxis stroke={axisColor} axisLine={false} tickLine={false} />
+            <Tooltip
+              cursor={{ fill: theme === 'dark' ? '#1e293b' : '#f1f5f9' }}
+              contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "8px", color: theme === 'dark' ? '#fff' : '#000' }}
+            />
+            <Bar dataKey="sales" radius={[4, 4, 0, 0]} animationDuration={1000}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={index === 0 ? "#3b82f6" : "#93c5fd"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
-
   );
-
 };
 
 export default SalesChart;

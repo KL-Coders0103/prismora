@@ -1,191 +1,140 @@
 const Sales = require("../models/Sales");
 
-
+// Use built-in standard formatter for cleaner strings
 const formatCurrency = (value) => {
-
-  return `₹${Number(value).toLocaleString("en-IN")}`;
-
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0
+  }).format(value);
 };
 
-
 exports.processQuery = async (query) => {
-
   try {
-
-    query = query.toLowerCase();
-
+    const safeQuery = query.toLowerCase();
 
     // =========================
     // TOP SELLING PRODUCT
     // =========================
-
     if (
-      query.includes("top product") ||
-      query.includes("best product") ||
-      query.includes("highest selling product")
+      safeQuery.includes("top product") ||
+      safeQuery.includes("best product") ||
+      safeQuery.includes("highest selling product")
     ) {
-
       const result = await Sales.aggregate([
-        {
-          $group: {
-            _id: "$product",
-            total: { $sum: "$quantity" }
-          }
-        },
+        { $group: { _id: "$product", total: { $sum: "$quantity" } } },
         { $sort: { total: -1 } },
         { $limit: 1 }
       ]);
 
-      if (result.length === 0) {
-        return "No product data available.";
+      if (!result || result.length === 0 || !result[0]._id) {
+        return "I don't have enough product sales data to determine the top seller right now.";
       }
-
-      return `Top selling product sold ${result[0].total} units.`;
-
+      return `Your top-selling product is **${result[0]._id}** with ${result[0].total.toLocaleString()} units sold.`;
     }
-
 
     // =========================
     // HIGHEST REVENUE REGION
     // =========================
-
     if (
-      query.includes("region") ||
-      query.includes("location") ||
-      query.includes("highest region")
+      safeQuery.includes("region") ||
+      safeQuery.includes("location") ||
+      safeQuery.includes("highest region")
     ) {
-
       const result = await Sales.aggregate([
-        {
-          $group: {
-            _id: "$region",
-            total: { $sum: "$revenue" }
-          }
-        },
+        { $group: { _id: "$region", total: { $sum: "$revenue" } } },
         { $sort: { total: -1 } },
         { $limit: 1 }
       ]);
 
-      if (result.length === 0) {
-        return "No regional sales data available.";
+      if (!result || result.length === 0 || !result[0]._id) {
+        return "I cannot determine regional performance as there is no regional sales data available.";
       }
-
-      return `Highest revenue region is ${result[0]._id} with ${formatCurrency(result[0].total)} revenue.`;
-
+      return `The **${result[0]._id}** region is currently generating the highest revenue at ${formatCurrency(result[0].total)}.`;
     }
-
 
     // =========================
     // TOTAL REVENUE
     // =========================
-
     if (
-      query.includes("total revenue") ||
-      query.includes("overall revenue") ||
-      query.includes("total sales revenue")
+      safeQuery.includes("total revenue") ||
+      safeQuery.includes("overall revenue") ||
+      safeQuery.includes("total sales revenue")
     ) {
-
       const result = await Sales.aggregate([
-        {
-          $group: {
-            _id: null,
-            revenue: { $sum: "$revenue" }
-          }
-        }
+        { $group: { _id: null, revenue: { $sum: "$revenue" } } }
       ]);
 
-      return `Total revenue is ${formatCurrency(result[0].revenue)}.`;
-
+      if (!result || result.length === 0 || !result[0].revenue) {
+        return "There are no recorded sales to calculate total revenue.";
+      }
+      return `Your total overall revenue stands at **${formatCurrency(result[0].revenue)}**.`;
     }
-
 
     // =========================
     // SALES BY CATEGORY
     // =========================
-
-    if (query.includes("category")) {
-
+    if (safeQuery.includes("category") || safeQuery.includes("categories")) {
       const result = await Sales.aggregate([
-        {
-          $group: {
-            _id: "$category",
-            sales: { $sum: "$quantity" }
-          }
-        }
+        { $group: { _id: "$category", sales: { $sum: "$quantity" } } },
+        { $sort: { sales: -1 } }
       ]);
 
-      const summary = result
-        .map(r => `${r._id}: ${r.sales}`)
-        .join(", ");
+      if (!result || result.length === 0) {
+        return "No category data is currently available in the dataset.";
+      }
 
-      return `Sales by category → ${summary}`;
-
+      const summary = result.map(r => `${r._id || 'Uncategorized'} (${r.sales.toLocaleString()} units)`).join(", ");
+      return `Here is the breakdown of sales by category: ${summary}.`;
     }
-
 
     // =========================
     // MONTHLY REVENUE TREND
     // =========================
-
     if (
-      query.includes("monthly") ||
-      query.includes("trend") ||
-      query.includes("revenue trend")
+      safeQuery.includes("monthly") ||
+      safeQuery.includes("trend") ||
+      safeQuery.includes("revenue trend")
     ) {
-
       const result = await Sales.aggregate([
-        {
-          $group: {
-            _id: { $month: "$date" },
-            revenue: { $sum: "$revenue" }
-          }
-        },
+        { $group: { _id: { $month: "$date" }, revenue: { $sum: "$revenue" } } },
         { $sort: { "_id": 1 } }
       ]);
 
-      const summary = result
-        .map(r => `Month ${r._id}: ${formatCurrency(r.revenue)}`)
-        .join(", ");
+      if (!result || result.length === 0) {
+        return "There is insufficient chronological data to plot a monthly trend.";
+      }
 
-      return `Monthly revenue trend → ${summary}`;
-
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const summary = result.map(r => `${months[(r._id || 1) - 1]}: ${formatCurrency(r.revenue)}`).join(" | ");
+      return `Here is your monthly revenue trend: \n${summary}`;
     }
-
 
     // =========================
     // TOP 5 PRODUCTS
     // =========================
-
-    if (query.includes("top products")) {
-
+    if (safeQuery.includes("top products") || safeQuery.includes("top 5")) {
       const result = await Sales.aggregate([
-        {
-          $group: {
-            _id: "$product",
-            sales: { $sum: "$quantity" }
-          }
-        },
+        { $group: { _id: "$product", sales: { $sum: "$quantity" } } },
         { $sort: { sales: -1 } },
         { $limit: 5 }
       ]);
 
-      const summary = result
-        .map(r => `${r._id} (${r.sales})`)
-        .join(", ");
+      if (!result || result.length === 0) {
+        return "I don't have enough product data to list top sellers.";
+      }
 
-      return `Top products are: ${summary}`;
-
+      const summary = result.map((r, i) => `${i + 1}. ${r._id} (${r.sales.toLocaleString()})`).join("\n");
+      return `Here are your top 5 performing products:\n${summary}`;
     }
 
-
-    return "I couldn't understand the query. Try asking about revenue, products, regions, or sales trends.";
+    // =========================
+    // DEFAULT FALLBACK
+    // =========================
+    return "I couldn't quite understand that. Try asking about total revenue, top products, best-performing regions, or sales trends.";
 
   } catch (error) {
-
-    console.error("Chat AI Error:", error.message);
-
-    return "Error processing your request.";
-
+    console.error("[Chat AI Service Error]:", error.message);
+    return "I encountered an error trying to search the database. Please try again.";
   }
-
 };

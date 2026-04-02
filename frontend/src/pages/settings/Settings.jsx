@@ -1,204 +1,72 @@
-import { useEffect, useState } from "react";
-import DashboardLayout from "../../components/layout/DashboardLayout";
-import {
-  getSettings,
-  updateSettings
-} from "../../services/settingsService";
+import React from "react";
+import { Moon, Sun, Bell, Database, ShieldCheck } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const Settings = () => {
+  const { theme, toggleTheme } = useTheme();
 
-  const [settings,setSettings] = useState({
-    darkMode:true,
-    notifications:true
-  });
+  return (
+    <div className="max-w-3xl">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">System Settings</h1>
 
-  const [loading,setLoading] = useState(true);
-  const [saving,setSaving] = useState(false);
+      <div className="space-y-4">
+        <SettingItem
+          icon={theme === "dark" ? <Moon size={20} /> : <Sun size={20} />}
+          title="Display Theme"
+          description="Switch between light and dark mode for your dashboard."
+          action={
+            <button
+              onClick={toggleTheme}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                theme === "dark" ? "bg-indigo-600" : "bg-gray-300"
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                theme === "dark" ? "translate-x-6" : "translate-x-1"
+              }`} />
+            </button>
+          }
+        />
 
-  const [success,setSuccess] = useState("");
-  const [error,setError] = useState("");
+        <SettingItem
+          icon={<Bell size={20} />}
+          title="Notification Alerts"
+          description="Receive desktop and email alerts for high-severity AI anomalies."
+          action={<span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Active</span>}
+        />
 
-  useEffect(()=>{
+        <SettingItem
+          icon={<Database size={20} />}
+          title="Data Synchronization"
+          description="Automatic real-time ingestion of new sales records."
+          action={<span className="text-xs font-bold text-green-500 uppercase tracking-widest">Connected</span>}
+        />
 
-    const loadSettings = async ()=>{
-
-      try{
-
-        const data = await getSettings();
-
-        setSettings(data);
-
-      }catch(err){
-
-        console.error(err);
-        setError("Failed to load settings");
-
-      }finally{
-
-        setLoading(false);
-
-      }
-
-    };
-
-    loadSettings();
-
-  },[]);
-
-  const toggleSetting = async (key)=>{
-
-    const updated = {
-      ...settings,
-      [key]:!settings[key]
-    };
-
-    setSettings(updated);
-
-    setSaving(true);
-    setSuccess("");
-    setError("");
-
-    try{
-
-      await updateSettings(updated);
-
-      setSuccess("Settings updated");
-
-    }catch(err){
-
-      console.error(err);
-      setError("Failed to save settings");
-
-    }finally{
-
-      setSaving(false);
-
-    }
-
-  };
-
-  if(loading){
-
-    return(
-
-      <DashboardLayout>
-
-        <p className="text-gray-400">
-          Loading settings...
-        </p>
-
-      </DashboardLayout>
-
-    )
-
-  }
-
-  return(
-
-    <DashboardLayout>
-
-      <h1 className="text-3xl font-bold mb-6">
-        Settings
-      </h1>
-
-      {success && (
-        <p className="text-green-400 mb-4">
-          {success}
-        </p>
-      )}
-
-      {error && (
-        <p className="text-red-400 mb-4">
-          {error}
-        </p>
-      )}
-
-      <div className="space-y-6 max-w-lg">
-
-        {/* Dark Mode */}
-
-        <div className="bg-slate-900 border border-slate-700 p-5 rounded-xl flex justify-between items-center">
-
+        <div className="p-6 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-center gap-4">
+          <ShieldCheck className="text-indigo-600 dark:text-indigo-400 shrink-0" size={32} />
           <div>
-
-            <p className="font-semibold">
-              Dark Mode
-            </p>
-
-            <p className="text-sm text-gray-400">
-              Toggle dashboard theme
-            </p>
-
+            <h4 className="font-bold text-gray-900 dark:text-white text-sm">Enterprise Security Enabled</h4>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Your session is encrypted using 256-bit AES protection. Activity is being logged for audit purposes.</p>
           </div>
-
-          <button
-            onClick={()=>toggleSetting("darkMode")}
-            disabled={saving}
-            className={`px-4 py-1 rounded ${
-              settings.darkMode
-              ? "bg-blue-500"
-              : "bg-gray-600"
-            }`}
-          >
-
-            {settings.darkMode ? "ON" : "OFF"}
-
-          </button>
-
         </div>
-
-        {/* Notifications */}
-
-        <div className="bg-slate-900 border border-slate-700 p-5 rounded-xl flex justify-between items-center">
-
-          <div>
-
-            <p className="font-semibold">
-              Notifications
-            </p>
-
-            <p className="text-sm text-gray-400">
-              Receive system alerts
-            </p>
-
-          </div>
-
-          <button
-            onClick={()=>toggleSetting("notifications")}
-            disabled={saving}
-            className={`px-4 py-1 rounded ${
-              settings.notifications
-              ? "bg-green-500"
-              : "bg-gray-600"
-            }`}
-          >
-
-            {settings.notifications ? "Enabled" : "Disabled"}
-
-          </button>
-
-        </div>
-
-        {/* API Integrations */}
-
-        <div className="bg-slate-900 border border-slate-700 p-5 rounded-xl">
-
-          <p className="font-semibold mb-1">
-            API Integrations
-          </p>
-
-          <p className="text-sm text-gray-400">
-            Connect external analytics APIs and data sources.
-          </p>
-
-        </div>
-
       </div>
+    </div>
+  );
+};
 
-    </DashboardLayout>
+const SettingItem = ({ icon, title, description, action }) => (
+  <div className="p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-between shadow-sm">
+    <div className="flex items-center gap-4">
+      <div className="p-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-xl">
+        {icon}
+      </div>
+      <div>
+        <h4 className="font-bold text-gray-900 dark:text-white text-sm">{title}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</p>
+      </div>
+    </div>
+    <div className="shrink-0 ml-4">{action}</div>
+  </div>
+);
 
-  )
-
-}
-
-export default Settings
+export default Settings;

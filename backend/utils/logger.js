@@ -1,17 +1,15 @@
-// backend/utils/logger.js
+// Keeping it lightweight, but standardizing the output format
+const formatTimestamp = () => new Date().toISOString();
 
 exports.logInfo = (message) => {
-
-  console.log(
-    `[INFO] ${new Date().toISOString()} - ${message}`
-  );
-
+  console.log(`[INFO] [${formatTimestamp()}] ${message}`);
 };
 
-exports.logError = (error) => {
+exports.logWarn = (message) => {
+  console.warn(`[WARN] [${formatTimestamp()}] ${message}`);
+};
 
-  console.error(
-    `[ERROR] ${new Date().toISOString()} - ${error}`
-  );
-
+exports.logError = (error, context = "") => {
+  const errorMsg = error instanceof Error ? error.stack || error.message : error;
+  console.error(`[ERROR] [${formatTimestamp()}] ${context ? `(${context}) ` : ""}${errorMsg}`);
 };

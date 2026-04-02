@@ -1,10 +1,52 @@
 @import "tailwindcss";
 
-body{
-  background:#0f172a;
-  color:white;
+/* 1. Base Theme Configuration */
+@layer base {
+  :root {
+    --transition-speed: 0.2s;
+  }
+
+  body {
+    /* Uses Tailwind colors but provides a fallback for clean loading */
+    @apply bg-gray-50 text-gray-900 transition-colors duration-300 antialiased;
+  }
+
+  /* Support for the .dark class we implemented in ThemeProvider */
+  .dark body {
+    @apply bg-gray-950 text-white;
+  }
+
+  /* 2. Performance Optimization: Remove wildcard transitions */
+  /* Instead of *, we apply transitions only to properties that usually change themes or states */
+  a, button, input, div, span {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
 }
 
-*{
-  transition: all 0.2s ease;
+/* 3. Custom Premium Scrollbar (Modern SaaS Look) */
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-full hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors;
+  }
+
+  /* Glassmorphism utility used in Home.jsx */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-800/30 shadow-xl;
+  }
+}
+
+/* 4. Global Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }

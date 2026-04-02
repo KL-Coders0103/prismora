@@ -1,8 +1,6 @@
 const Alert = require("../models/Alert");
 const Sales = require("../models/Sales");
-const { sendAlert } = require("../sockets/realtimeSocket");
-
-
+const { getIO } = require("../sockets/realtimeSocket"); // Adjusted to match your socket setup
 
 // CREATE ALERT
 exports.createAlert = async (
@@ -12,65 +10,41 @@ exports.createAlert = async (
   source = "system",
   metadata = {}
 ) => {
-
   try {
+    const alert = await Alert.create({ message, type, severity, source, metadata });
 
-    const alert = await Alert.create({
-      message,
-      type,
-      severity,
-      source,
-      metadata
-    });
-
-    sendAlert(alert);
+    // Emit via WebSockets
+    const io = getIO();
+    if (io) {
+      io.emit("alert", alert);
+    }
 
     return alert;
-
   } catch (error) {
-
-    console.error("Alert creation error:", error.message);
-
+    console.error("[Alert Creation Error]:", error.message);
   }
-
 };
-
-
 
 // AI ANOMALY DETECTION
 exports.detectRevenueAnomaly = async () => {
-
   try {
-
     const revenue = await Sales.aggregate([
-      {
-        $group: {
-          _id: "$region",
-          revenue: { $sum: "$revenue" }
-        }
-      }
+      { $group: { _id: "$region", revenue: { $sum: "$revenue" } } }
     ]);
 
-    revenue.forEach(async (region) => {
-
+    // FIX: Using for...of instead of forEach to respect async/await
+    for (const region of revenue) {
       if (region.revenue > 150000) {
-
         await exports.createAlert(
-          `Revenue spike detected in ${region._id} region`,
+          `Unusual revenue spike detected in the ${region._id} region.`,
+          "analytics", // Matched with Alert schema enums
           "warning",
-          "high",
-          "analytics",
-          { region: region._id }
+          "analytics_engine",
+          { region: region._id, revenue: region.revenue }
         );
-
       }
-
-    });
-
+    }
   } catch (error) {
-
-    console.error("Anomaly detection error:", error.message);
-
+    console.error("[Anomaly Detection Error]:", error.message);
   }
-
 };

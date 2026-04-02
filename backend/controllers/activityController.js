@@ -1,22 +1,20 @@
 const ActivityLog = require("../models/ActivityLog");
 
 exports.getLogs = async (req, res) => {
-
   try {
+    const limit = Math.min(Number(req.query.limit) || 50, 200);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const skip = (page - 1) * limit;
 
     const logs = await ActivityLog.find()
-      .populate("user", "name email")
+      .populate("user", "name email role") 
       .sort({ createdAt: -1 })
-      .limit(50);
+      .skip(skip)
+      .limit(limit);
 
-    res.json(logs);
-
+    res.status(200).json(logs);
   } catch (error) {
-
-    res.status(500).json({
-      error: error.message
-    });
-
+    console.error("[Activity Logs Error]:", error);
+    res.status(500).json({ error: "Failed to fetch activity logs from database." });
   }
-
 };

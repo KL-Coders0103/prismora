@@ -8,30 +8,27 @@ const productSchema = new mongoose.Schema(
       trim: true,
       index: true
     },
-
     category: {
       type: String,
       required: true,
-      trim: true,
-      index: true
+      trim: true
+      // Removed redundant index: true
     },
-
     price: {
       type: Number,
       required: true,
       min: 0
     },
-
     cost: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0
     },
-
     stock: {
       type: Number,
-      default: 0
+      default: 0,
+      min: 0
     },
-
     isActive: {
       type: Boolean,
       default: true
@@ -42,7 +39,8 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Index for analytics
+// Explicit Index for Analytics filtering
 productSchema.index({ category: 1 });
+productSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model("Product", productSchema);

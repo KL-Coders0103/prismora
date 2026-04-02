@@ -1,14 +1,19 @@
-fastapi
-uvicorn
-pandas
-numpy
-scikit-learn
-joblib
-python-multipart
-pydantic
-matplotlib
-seaborn
-flask
-prophet
-flask-cors
-matplotlib
+# --- CORE WEB ---
+flask==3.0.2
+flask-cors==4.0.0
+python-dotenv==1.0.1
+requests==2.31.0
+
+# --- DATA SCIENCE ---
+pandas==2.2.1
+numpy==1.26.4
+joblib==1.3.2
+
+# --- MACHINE LEARNING & MODELS ---
+scikit-learn==1.4.1
+prophet==1.1.5
+statsmodels==0.14.1
+
+# --- VISUALIZATION (Internal Logic) ---
+matplotlib==3.8.3
+seaborn==0.13.2

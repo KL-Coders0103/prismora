@@ -1,23 +1,32 @@
 import API from "./api";
 
-// DASHBOARD
+/**
+ * High-level Dashboard KPI data
+ */
 export const getDashboardSummary = async () => {
   const res = await API.get("/analytics/dashboard");
   return res.data;
 };
 
-// SALES ANALYTICS
+/**
+ * Sales break-down by Product Category
+ */
 export const getSalesByCategory = async () => {
   const res = await API.get("/analytics/sales/category");
   return res.data;
 };
 
+/**
+ * Revenue break-down by Geographic Region
+ */
 export const getSalesByRegion = async () => {
   const res = await API.get("/analytics/sales/region");
   return res.data;
 };
 
-// PRODUCT ANALYTICS
+/**
+ * Product-specific performance metrics
+ */
 export const getProductPerformance = async () => {
   const res = await API.get("/analytics/products/performance");
   return res.data;
@@ -28,7 +37,9 @@ export const getTopProducts = async () => {
   return res.data;
 };
 
-// CUSTOMER ANALYTICS
+/**
+ * Customer distribution and demographic revenue
+ */
 export const getCustomerByRegion = async () => {
   const res = await API.get("/analytics/customers/region");
   return res.data;
@@ -39,7 +50,9 @@ export const getCustomerRevenue = async () => {
   return res.data;
 };
 
-// REVENUE
+/**
+ * Historical Revenue Trend (Chronological)
+ */
 export const getMonthlyRevenue = async () => {
   const res = await API.get("/analytics/revenue/monthly");
   return res.data;

@@ -4,87 +4,44 @@ from datetime import datetime, timedelta
 import random
 import os
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(BASE_DIR, "data", "ecommerce_data.csv")
 
-DATA_PATH = os.path.join(PROJECT_ROOT, "data", "ecommerce_data.csv")
-
-
-def generate_dataset(num_rows=2000):
-
-    rows = []
-
-    products = ["Laptop", "Mouse", "Keyboard", "Shoes", "Phone", "Headphones"]
-
-    categories = {
-        "Laptop": "Electronics",
-        "Mouse": "Electronics",
-        "Keyboard": "Electronics",
-        "Phone": "Electronics",
-        "Headphones": "Electronics",
-        "Shoes": "Fashion"
+def generate_dataset(num_rows=3000):
+    products = {
+        "Laptop": {"cat": "Electronics", "price": (50000, 150000)},
+        "Phone": {"cat": "Electronics", "price": (15000, 80000)},
+        "Headphones": {"cat": "Electronics", "price": (2000, 15000)},
+        "Shoes": {"cat": "Fashion", "price": (1000, 8000)},
+        "Watch": {"cat": "Fashion", "price": (2000, 20000)}
     }
-
     regions = ["North", "South", "East", "West"]
-
-    start = datetime(2023, 1, 1)
+    
+    rows = []
+    start_date = datetime(2024, 1, 1)
 
     for i in range(num_rows):
+        # Create a time-series trend (slight increase over time)
+        date = start_date + timedelta(days=random.randint(0, 730))
+        prod_name = random.choice(list(products.keys()))
+        
+        price = random.randint(*products[prod_name]["price"])
+        quantity = random.randint(1, 10)
+        
+        rows.append({
+            "date": date.strftime('%Y-%m-%d'),
+            "product": prod_name,
+            "category": products[prod_name]["cat"],
+            "price": price,
+            "quantity": quantity,
+            "revenue": price * quantity,
+            "region": random.choice(regions)
+        })
 
-        date = start + timedelta(days=i % 365)
-
-        product = random.choice(products)
-
-        if product == "Laptop":
-            price = random.randint(50000, 150000)
-
-        elif product == "Phone":
-            price = random.randint(10000, 80000)
-
-        elif product == "Shoes":
-            price = random.randint(500, 5000)
-
-        else:
-            price = random.randint(200, 5000)
-
-        quantity = random.randint(1, 5)
-
-        revenue = price * quantity
-
-        churn = random.choice([0, 1])
-
-        rows.append([
-            date,
-            random.randint(100, 500),
-            product,
-            categories[product],
-            price,
-            quantity,
-            revenue,
-            random.choice(regions),
-            churn
-        ])
-
-    df = pd.DataFrame(rows, columns=[
-        "date", "customer_id", "product", "category",
-        "price", "quantity", "revenue", "region", "churn"
-    ])
-
-    df = df.sort_values("date").reset_index(drop=True)
-
+    df = pd.DataFrame(rows).sort_values("date")
     os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
-
     df.to_csv(DATA_PATH, index=False)
-
-    print("Dataset generated successfully")
-
-    print("Records:", len(df))
-
-    print("Saved at:", DATA_PATH)
-
-    return df
-
+    print(f"✅ Synthetic Dataset generated with {len(df)} records at {DATA_PATH}")
 
 if __name__ == "__main__":
-
     generate_dataset()
