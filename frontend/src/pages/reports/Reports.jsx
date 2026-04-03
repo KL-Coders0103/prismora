@@ -4,19 +4,42 @@ import { FileSpreadsheet, FileText, Download, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { downloadReportFile } from "../../services/reportService";
 
+const VALID_TYPES = ["excel", "pdf"];
+
 const Reports = () => {
   const [loading, setLoading] = useState(null);
 
   const handleDownload = async (type) => {
+    if (!VALID_TYPES.includes(type)) {
+      toast.error("Invalid report type");
+      return;
+    }
+
+    if (loading) return;
+
     setLoading(type);
     const toastId = toast.loading(`Generating ${type.toUpperCase()} report...`);
 
     try {
-      await downloadReportFile(type);
-      toast.success(`${type.toUpperCase()} report downloaded successfully!`, { id: toastId });
+      // ✅ Now it returns 'true' from service
+      const isSuccess = await downloadReportFile(type);
+
+      if (isSuccess) {
+        toast.success(`${type.toUpperCase()} report downloaded!`, { id: toastId });
+      }
     } catch (err) {
-      console.error(err);
-      toast.error(err.message || `Failed to download ${type.toUpperCase()} report.`, { id: toastId });
+      console.error("Report Download Error:", err);
+      
+      // ✅ Extracting actual error even if it's a blob error
+      let errorMessage = "Network error. Please check your server.";
+      
+      if (err.message) {
+        errorMessage = err.message;
+      } else if (err.response?.data) {
+        errorMessage = err.response.data.message || "Server Error";
+      }
+      
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setLoading(null);
     }
@@ -26,25 +49,24 @@ const Reports = () => {
     <Motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
       className="max-w-5xl space-y-6"
     >
       <div className="flex flex-col mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           Data Exports & Reports
         </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Generate and download comprehensive analytics reports for stakeholders.
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Generate and download professional analytics reports in multiple formats.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ReportCard
           title="Sales Dataset"
-          description="Download the complete, raw sales dataset including all historical transactions, regions, and product categories."
+          description="Complete raw data of all transactions in spreadsheet format."
           buttonText="Export to Excel"
           type="excel"
-          loading={loading}
+          activeLoading={loading}
           icon={FileSpreadsheet}
           colorTheme="green"
           onDownload={handleDownload}
@@ -52,10 +74,10 @@ const Reports = () => {
 
         <ReportCard
           title="Executive Summary"
-          description="Export a high-level analytics summary, including revenue trends, KPI metrics, and AI-driven insights."
+          description="A visual PDF summary of business performance and AI insights."
           buttonText="Download PDF"
           type="pdf"
-          loading={loading}
+          activeLoading={loading}
           icon={FileText}
           colorTheme="red"
           onDownload={handleDownload}
@@ -65,48 +87,58 @@ const Reports = () => {
   );
 };
 
-const ReportCard = ({ title, description, buttonText, type, loading, icon: Icon, colorTheme, onDownload }) => {
-  const isLoading = loading === type;
+// --- SUB-COMPONENT: ReportCard ---
+// --- SUB-COMPONENT: ReportCard ---
+const ReportCard = ({ 
+  title, 
+  description, 
+  buttonText, 
+  type, 
+  activeLoading, 
+  icon: Icon, 
+  colorTheme, 
+  onDownload 
+}) => {
+  const isLoading = activeLoading === type;
+  const isAnyLoading = activeLoading !== null;
 
-  // Dynamic theme mapping for a premium SaaS feel
   const themes = {
     green: {
       iconBg: "bg-green-100 text-green-600 dark:bg-green-500/20 dark:text-green-400",
-      btn: "bg-green-600 hover:bg-green-700 focus:ring-green-500",
+      btn: "bg-green-600 hover:bg-green-700 focus:ring-green-500 shadow-green-500/20",
     },
     red: {
       iconBg: "bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400",
-      btn: "bg-red-600 hover:bg-red-700 focus:ring-red-500",
-    }
+      btn: "bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-red-500/20",
+    },
   };
 
   const theme = themes[colorTheme] || themes.green;
 
   return (
-    <Motion.div 
+    <Motion.div
       whileHover={{ y: -4 }}
-      transition={{ duration: 0.2 }}
-      className="flex flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-colors duration-300"
+      className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all dark:border-gray-800 dark:bg-gray-900"
     >
-      <div className="flex items-start gap-4 mb-4">
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${theme.iconBg}`}>
-          <Icon size={24} />
+      <div className="flex items-start gap-4 mb-6">
+        <div className={`h-12 w-12 shrink-0 flex items-center justify-center rounded-xl ${theme.iconBg}`}>
+          {/* ✅ 2. Ab 'Icon' ko component ki tarah use kiya (Warning Gone!) */}
+          <Icon size={24} /> 
         </div>
+
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {title}
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
             {description}
           </p>
         </div>
       </div>
 
-      <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
+      <div className="mt-auto pt-5 border-t border-gray-50 dark:border-gray-800">
         <button
           onClick={() => onDownload(type)}
-          disabled={isLoading || loading !== null} // Disable all buttons if ANY is loading
-          className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 dark:focus:ring-offset-gray-900 ${theme.btn}`}
+          disabled={isAnyLoading}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${theme.btn}`}
         >
           {isLoading ? (
             <>

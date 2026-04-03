@@ -17,7 +17,6 @@ const iconMap = {
   "Conversion Rate": Percent,
 };
 
-// Updated styling for pristine Light + Dark mode support
 const themeMap = {
   Revenue: {
     bg: "bg-green-50 dark:bg-green-500/10",
@@ -45,31 +44,32 @@ const themeMap = {
   },
 };
 
-const KPICard = ({ title, value, change, loading }) => {
+const KPICard = ({ title, value, loading, change }) => {
   const Icon = iconMap[title] || Users;
   const theme = themeMap[title] || themeMap.Sales;
 
-  const changeValue  = parseFloat(change) || 0;
+  // Safe check for change values (prevents crashes)
+  const changeValue = parseFloat(change) || 0;
   const isPositive = changeValue > 0;
   const isNeutral = changeValue === 0;
-  
 
-  let displayValue = value;
-  if (!loading) {
-    if (title === "Revenue") displayValue = formatINR(value);
-    else if (title === "Conversion Rate") displayValue = `${value}%`;
-    else displayValue = new Intl.NumberFormat("en-IN").format(value);
-  }
+  // Logic to handle value display
+  const getDisplayValue = () => {
+    if (loading) return "";
+    if (title === "Revenue") return formatINR(value);
+    if (title === "Conversion Rate") return `${value}%`;
+    return new Intl.NumberFormat("en-IN").format(value);
+  };
 
   if (loading) {
     return (
-      <div className={`rounded-xl border ${theme.border} ${theme.bg} p-6 shadow-sm`}>
+      <div className={`rounded-xl border ${theme.border} ${theme.bg} p-6 shadow-sm animate-pulse`}>
         <div className="flex items-center justify-between mb-4">
-          <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
-          <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+          <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700"></div>
+          <div className="h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
         </div>
-        <div className="h-8 w-32 rounded bg-gray-200 dark:bg-gray-700 animate-pulse mb-2"></div>
-        <div className="h-3 w-16 rounded bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+        <div className="h-8 w-32 rounded bg-gray-200 dark:bg-gray-700 mb-2"></div>
+        <div className="h-3 w-16 rounded bg-gray-200 dark:bg-gray-700"></div>
       </div>
     );
   }
@@ -78,7 +78,7 @@ const KPICard = ({ title, value, change, loading }) => {
     <Motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className={`rounded-xl border ${theme.border} ${theme.bg} p-6 shadow-sm transition-colors duration-300`}
+      className={`rounded-xl border ${theme.border} ${theme.bg} p-6 shadow-sm transition-all duration-300`}
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -90,13 +90,14 @@ const KPICard = ({ title, value, change, loading }) => {
       </div>
 
       <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">
-        {displayValue}
+        {getDisplayValue()}
       </h2>
 
       <div className="flex items-center gap-2">
-        <div className={`flex items-center gap-1 text-sm font-medium ${isNeutral ? "text-gray-500 dark:text-gray-400" : 
-          isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-          {isNeutral ? null : isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+        <div className={`flex items-center gap-1 text-sm font-medium ${
+          isNeutral ? "text-gray-500" : isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+        }`}>
+          {!isNeutral && (isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />)}
           <span>{change || "0%"}</span>
         </div>
         <span className="text-xs text-gray-500 dark:text-gray-400">vs last month</span>

@@ -4,11 +4,11 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recha
 import { getCustomerByRegion } from "../../services/analyticsService";
 import { useTheme } from "../../context/ThemeContext";
 
-// SaaS standardized color palette
 const COLORS = ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6"];
 
 const CustomerAnalytics = () => {
   const { theme } = useTheme();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,25 +17,37 @@ const CustomerAnalytics = () => {
   const tooltipBorder = theme === "dark" ? "#334155" : "#e2e8f0";
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadData = async () => {
       try {
         const result = await getCustomerByRegion();
-        
-        const formatted = result.map(item => ({
-          name: item._id || "Unknown Region",
-          value: item.customers || 0
+
+        if (!isMounted) return;
+
+        // ✅ SAFE DATA HANDLING
+        const formatted = (Array.isArray(result) ? result : []).map((item, index) => ({
+          name: item?._id || `Region ${index + 1}`,
+          value: Number(item?.customers) || 0,
+          key: `${item?._id || "region"}-${index}` // ✅ unique key
         }));
 
         setData(formatted);
       } catch (err) {
         console.error("Customer Analytics Error:", err);
-        setError("Failed to load customer analytics data.");
+        if (isMounted) {
+          setError("Failed to load customer analytics data.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -58,7 +70,9 @@ const CustomerAnalytics = () => {
       )}
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-colors duration-300">
-        <h2 className="mb-6 text-lg font-bold text-gray-900 dark:text-white">Customers by Region</h2>
+        <h2 className="mb-6 text-lg font-bold text-gray-900 dark:text-white">
+          Customers by Region
+        </h2>
 
         {loading ? (
           <div className="h-[320px] w-full animate-pulse rounded-xl bg-gray-200 dark:bg-gray-800"></div>
@@ -68,7 +82,8 @@ const CustomerAnalytics = () => {
           </div>
         ) : (
           <div className="h-[360px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            {/* ✅ FIXED HEIGHT BUG */}
+            <ResponsiveContainer width="100%" height={360}>
               <PieChart>
                 <Pie
                   data={data}
@@ -82,19 +97,31 @@ const CustomerAnalytics = () => {
                   stroke="none"
                   animationDuration={1000}
                 >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {data.map((entry) => (
+                    <Cell key={entry.key} fill={COLORS[data.indexOf(entry) % COLORS.length]} />
                   ))}
                 </Pie>
+
                 <Tooltip
-                  contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "8px", color: theme === 'dark' ? '#fff' : '#000' }}
-                  formatter={(value) => [new Intl.NumberFormat("en-IN").format(value), "Customers"]}
+                  contentStyle={{
+                    backgroundColor: tooltipBg,
+                    border: `1px solid ${tooltipBorder}`,
+                    borderRadius: "8px",
+                    color: theme === "dark" ? "#fff" : "#000",
+                  }}
+                  formatter={(value) => [
+                    new Intl.NumberFormat("en-IN").format(value),
+                    "Orders",
+                  ]}
                 />
-                <Legend 
-                  verticalAlign="bottom" 
-                  height={36} 
+
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
                   iconType="circle"
-                  wrapperStyle={{ color: theme === 'dark' ? '#cbd5e1' : '#475569' }}
+                  wrapperStyle={{
+                    color: theme === "dark" ? "#cbd5e1" : "#475569",
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>

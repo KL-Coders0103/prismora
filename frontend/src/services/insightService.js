@@ -1,7 +1,11 @@
 import API from "./api";
 
-// AI Insights
+// 🔥 ADD TIMEOUT + FALLBACK
 export const getInsights = async () => {
-  const res = await API.get("/insights");
+  const res = await API.get("/insights", {
+    headers: {
+      "Cache-Control": "no-cache"
+    }
+  });
   return res.data;
 };

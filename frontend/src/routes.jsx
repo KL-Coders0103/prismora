@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 
 // Components
@@ -50,39 +50,68 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* === PUBLIC ROUTES === */}
+
+        {/* PUBLIC */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* === PROTECTED ROUTES (WRAPPED IN DASHBOARD LAYOUT) === */}
+        {/* PROTECTED */}
         <Route element={<Layout />}>
-          
-          {/* ALL AUTHENTICATED USERS */}
-          <Route element={<ProtectedRoute allowedRoles={["admin", "analyst", "viewer"]} />}>
+
+          <Route element={<ProtectedRoute permission="dashboard" />}>
             <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="reports" />}>
             <Route path="/reports" element={<Reports />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="profile" />}>
             <Route path="/profile" element={<Profile />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="settings" />}>
             <Route path="/settings" element={<Settings />} />
           </Route>
 
-          {/* ANALYSTS & ADMINS ONLY */}
-          <Route element={<ProtectedRoute allowedRoles={["admin", "analyst"]} />}>
+          <Route element={<ProtectedRoute permission="sales" />}>
             <Route path="/sales-analytics" element={<SalesAnalytics />} />
-            <Route path="/customer-analytics" element={<CustomerAnalytics />} />
-            <Route path="/upload-data" element={<UploadData />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="team" />}>
+            <Route path="/team" element={<TeamManagement />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="customers" />}>
+            <Route path="/customers" element={<CustomerAnalytics />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="upload" />}>
+            <Route path="/upload" element={<UploadData />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="alerts" />}>
             <Route path="/alerts" element={<Alerts />} />
+          </Route>
+          
+          <Route element={<ProtectedRoute permission="aiInsights" />}>
             <Route path="/ai-insights" element={<AIInsights />} />
+          </Route>
+
+          <Route element={<ProtectedRoute permission="aiChat" />}>
             <Route path="/ai-chat" element={<AIChat />} />
           </Route>
 
-          {/* ADMINS ONLY */}
-          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-            <Route path="/team" element={<TeamManagement />} />
-            <Route path="/activity" element={<ActivityLogs />} />
+          <Route element={<ProtectedRoute permission="logs" />}>
+            <Route path="/logs" element={<ActivityLogs />} />
           </Route>
 
         </Route>
+
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
     </Suspense>
   );

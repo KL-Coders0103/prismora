@@ -4,85 +4,84 @@ exports.generateInsights = async () => {
   const insights = [];
 
   try {
-    // Execute all independent database queries concurrently for massive performance gain
-    const [revenueByRegion, categorySales, topProduct, monthlyRevenue] = await Promise.all([
-      // 1. HIGH REVENUE REGION
-      Sales.aggregate([{ $group: { _id: "$region", revenue: { $sum: "$revenue" } } }]),
-      
-      // 2. LOW PERFORMING CATEGORY
-      Sales.aggregate([{ $group: { _id: "$category", sales: { $sum: "$quantity" } } }]),
-      
-      // 3. TOP PRODUCT
-      Sales.aggregate([
-        { $group: { _id: "$product", sales: { $sum: "$quantity" }, revenue: { $sum: "$revenue" } } },
-        { $sort: { sales: -1 } },
-        { $limit: 1 }
-      ]),
-      
-      // 4. MONTHLY REVENUE TREND (Fixed to include Year to prevent data merging)
-      Sales.aggregate([
-        { 
-          $group: { 
-            _id: { year: { $year: "$date" }, month: { $month: "$date" } }, 
-            revenue: { $sum: "$revenue" } 
-          } 
-        },
-        { $sort: { "_id.year": 1, "_id.month": 1 } }
-      ])
-    ]);
+    const [revenueByRegion, categorySales, topProduct, monthlyRevenue] =
+      await Promise.all([
+        Sales.aggregate([
+          { $group: { _id: "$region", revenue: { $sum: "$revenue" } } }
+        ]),
 
-    // --- Process Results ---
+        Sales.aggregate([
+          { $group: { _id: "$category", sales: { $sum: "$quantity" } } }
+        ]),
 
-    revenueByRegion.forEach(region => {
+        Sales.aggregate([
+          { $group: { _id: "$product", sales: { $sum: "$quantity" } } },
+          { $sort: { sales: -1 } },
+          { $limit: 1 }
+        ]),
+
+        Sales.aggregate([
+          {
+            $group: {
+              _id: { year: { $year: "$date" }, month: { $month: "$date" } },
+              revenue: { $sum: "$revenue" }
+            }
+          },
+          { $sort: { "_id.year": 1, "_id.month": 1 } }
+        ])
+      ]);
+
+    // ✅ HIGH REVENUE REGION
+    revenueByRegion.forEach((region, i) => {
       if (region.revenue > 100000) {
         insights.push({
-          title: "High Revenue Region Detected",
-          description: `The ${region._id} region is showing exceptionally strong revenue performance.`,
-          type: "trend",
+          id: `region-${i}`, // 🔥 UNIQUE KEY
+          title: "High Revenue Region",
+          description: `${region._id || "Unknown"} region is performing strongly.`,
           confidence: 85
         });
       }
     });
 
-    categorySales.forEach(cat => {
+    // ✅ UNDERPERFORMING CATEGORY (FIXED DUPLICATE)
+    categorySales.forEach((cat, i) => {
       if (cat.sales < 50) {
         insights.push({
-          title: "Underperforming Category",
-          description: `Sales for the '${cat._id}' category are critically low. Consider a targeted marketing campaign.`,
-          type: "recommendation",
+          id: `category-${i}`,
+          title: `Low Sales: ${cat._id || "Unknown"}`, // 🔥 FIX
+          description: `Category '${cat._id || "Unknown"}' is underperforming.`,
           confidence: 78
         });
       }
     });
 
+    // ✅ TOP PRODUCT
     if (topProduct.length > 0) {
       insights.push({
-        title: "Top Selling Product",
-        description: `The '${topProduct[0]._id}' is currently your highest selling product by volume.`,
-        type: "trend",
+        id: "top-product",
+        title: "Top Product",
+        description: `${topProduct[0]._id} is leading in sales.`,
         confidence: 90
       });
     }
 
-    // Trend Analysis (Requires at least 2 months of data)
+    // ✅ TREND
     if (monthlyRevenue.length >= 2) {
-      const lastMonth = monthlyRevenue[monthlyRevenue.length - 1];
-      const prevMonth = monthlyRevenue[monthlyRevenue.length - 2];
+      const last = monthlyRevenue.at(-1);
+      const prev = monthlyRevenue.at(-2);
 
-      if (lastMonth.revenue > prevMonth.revenue) {
-        const growth = (((lastMonth.revenue - prevMonth.revenue) / prevMonth.revenue) * 100).toFixed(1);
+      if (last.revenue > prev.revenue) {
         insights.push({
-          title: "Positive Revenue Growth",
-          description: `Revenue increased by ${growth}% compared to the previous month.`,
-          type: "trend",
+          id: "growth",
+          title: "Revenue Growth",
+          description: "Revenue is increasing month-over-month.",
           confidence: 88
         });
       } else {
-        const drop = (((prevMonth.revenue - lastMonth.revenue) / prevMonth.revenue) * 100).toFixed(1);
         insights.push({
-          title: "Revenue Contraction",
-          description: `Revenue decreased by ${drop}% compared to the previous month. Monitor closely.`,
-          type: "anomaly",
+          id: "decline",
+          title: "Revenue Drop",
+          description: "Revenue declined compared to last month.",
           confidence: 82
         });
       }
@@ -91,7 +90,7 @@ exports.generateInsights = async () => {
     return insights;
 
   } catch (error) {
-    console.error("[AI Insight Engine Error]:", error.message);
+    console.error("[AI Insight Error]:", error.message);
     return [];
   }
 };

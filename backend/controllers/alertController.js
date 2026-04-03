@@ -1,104 +1,122 @@
+const mongoose = require("mongoose");
 const Alert = require("../models/Alert");
-const { getIO } = require("../sockets/realtimeSocket"); // Assuming this returns the socket instance
-const { logActivity } = require("../services/activityService");
+const { getIO } = require("../sockets/realtimeSocket");
 
+// 🔥 Helper function to safely get User ID (Crash-proof)
+const getUserIdStr = (req) => req.user?.id || req.user?._id?.toString();
+const getUserIdObj = (req) => new mongoose.Types.ObjectId(getUserIdStr(req));
+
+// 🔥 GET ALL (Alerts Page)
 exports.getAlerts = async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit) || 50, 100); // Cap at 100
+    const alerts = await Alert.find().sort({ createdAt: -1 });
+    const userId = getUserIdStr(req); 
 
-    const alerts = await Alert.find()
-      .sort({ createdAt: -1 })
-      .limit(limit);
+    const formattedAlerts = alerts.map((alert) => {
+      const readByArray = alert.readBy || []; 
+      const hasRead = readByArray.some((id) => id.toString() === userId);
 
-    res.status(200).json(alerts);
-  } catch (error) {
-    console.error("[Get Alerts Error]:", error);
-    res.status(500).json({ message: "Failed to fetch alerts from database." });
+      return {
+        ...alert.toObject(),
+        isRead: hasRead,
+      };
+    });
+
+    res.json(formattedAlerts);
+  } catch (err) {
+    console.error("Error fetching alerts:", err);
+    res.status(500).json({ message: "Failed to fetch alerts" });
   }
 };
 
+// 🔥 GET UNREAD (Navbar)
+exports.getUnreadAlerts = async (req, res) => {
+  try {
+    const userIdObj = getUserIdObj(req);
+
+    // Find alerts where this specific user has NOT read it yet
+    const alerts = await Alert.find({ readBy: { $nin: [userIdObj] } })
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    const formattedAlerts = alerts.map((alert) => ({
+      ...alert.toObject(),
+      isRead: false,
+    }));
+
+    res.json(formattedAlerts);
+  } catch (err) {
+    console.error("Error fetching unread alerts:", err);
+    res.status(500).json({ message: "Failed to fetch unread alerts" });
+  }
+};
+
+// 🔥 CREATE ALERT
 exports.createAlert = async (req, res) => {
   try {
-    const { message, type, severity, source } = req.body;
-
-    if (!message || message.length < 3) {
-      return res.status(400).json({ message: "Valid alert message required (min 3 chars)." });
-    }
-
-    const allowedTypes = ["system", "sales", "ai", "security"];
-    if (type && !allowedTypes.includes(type.toLowerCase())) {
-      return res.status(400).json({ message: "Invalid alert type provided." });
-    }
+    const { message, type, severity } = req.body;
 
     const alert = await Alert.create({
       message,
-      type: type?.toLowerCase() || "system",
-      severity: severity?.toLowerCase() || "info",
-      source
+      type,
+      severity,
+      readBy: [], 
     });
 
-    // Safe Socket Emit
-    try {
-      const io = getIO();
-      if (io) {
-        io.emit("alert", {
-          _id: alert._id,
-          message: alert.message,
-          type: alert.type,
-          severity: alert.severity,
-          createdAt: alert.createdAt
-        });
-      }
-    } catch (socketErr) {
-      console.warn("Socket emit failed (Server might be running without WS):", socketErr.message);
-    }
+    const io = getIO();
 
-    const userId = req.user?.id || req.user?._id || "system";
-    await logActivity(userId, "create_alert", { message: message.substring(0, 100) });
+    // Broadcast to everyone that a new alert exists
+    io.emit("alert", {
+      _id: alert._id,
+      message: alert.message,
+      type: alert.type,
+      severity: alert.severity,
+      createdAt: alert.createdAt,
+      isRead: false, 
+    });
 
     res.status(201).json(alert);
-  } catch (error) {
-    console.error("[Create Alert Error]:", error);
-    res.status(500).json({ message: "Failed to create alert." });
+  } catch (err) {
+    console.error("Error creating alert:", err);
+    res.status(500).json({ message: "Failed to create alert" });
   }
 };
 
+// 🔥 MARK AS READ
 exports.markAsRead = async (req, res) => {
   try {
+    const userIdObj = getUserIdObj(req);
+    const userIdStr = getUserIdStr(req);
+
     const alert = await Alert.findByIdAndUpdate(
       req.params.id,
-      { isRead: true },
+      { $addToSet: { readBy: userIdObj } }, // Prevents duplicate IDs
       { new: true }
     );
 
-    if (!alert) {
-      return res.status(404).json({ message: "Alert not found." });
-    }
+    const io = getIO();
+    
+    // ✅ FIX: Send the userId along with the alert ID so frontend knows WHO read it
+    io.emit("alert_read", { id: alert._id, userId: userIdStr });
 
-    const userId = req.user?.id || req.user?._id || "system";
-    await logActivity(userId, "alert_marked_read", { alertId: req.params.id });
-
-    res.status(200).json(alert);
-  } catch (error) {
-    console.error("[Mark Alert Read Error]:", error);
-    res.status(500).json({ message: "Failed to update alert." });
+    res.json(alert);
+  } catch (err) {
+    console.error("Error marking alert as read:", err);
+    res.status(500).json({ message: "Failed to update alert" });
   }
 };
 
+// 🔥 DELETE ALERT
 exports.deleteAlert = async (req, res) => {
   try {
-    const alert = await Alert.findByIdAndDelete(req.params.id);
+    await Alert.findByIdAndDelete(req.params.id);
+    
+    const io = getIO();
+    io.emit("alert_deleted", { id: req.params.id });
 
-    if (!alert) {
-      return res.status(404).json({ message: "Alert not found." });
-    }
-
-    const userId = req.user?.id || req.user?._id || "system";
-    await logActivity(userId, "delete_alert", { alertId: req.params.id });
-
-    res.status(200).json({ message: "Alert deleted successfully." });
-  } catch (error) {
-    console.error("[Delete Alert Error]:", error);
-    res.status(500).json({ message: "Failed to delete alert." });
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    console.error("Error deleting alert:", err);
+    res.status(500).json({ message: "Failed to delete alert" });
   }
 };

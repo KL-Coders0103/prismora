@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Bell, Search, Menu, User, LogOut, Sun, Moon } from "lucide-react";
+import { Bell, Search, Menu, LogOut, Sun, Moon } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 import API from "../../services/api";
-import socket from "../../services/socket"; 
+import socket from "../../services/socket";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import toast from "react-hot-toast";
 
 const TopNavbar = ({ setOpen }) => {
   const { user, logout } = useAuth();
@@ -17,27 +18,58 @@ const TopNavbar = ({ setOpen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
-  const dropdownRef = useRef();
-  const profileRef = useRef();
+  const dropdownRef = useRef(null);
+  const profileRef = useRef(null);
 
   useEffect(() => {
+    if (!user) return;
+
+    // Load initial UNREAD alerts
     const loadAlerts = async () => {
       try {
-        const res = await API.get("/alerts");
-        setAlerts(res.data || []);
-      } catch (error) {
-        console.error("Failed to load alerts", error);
+        const res = await API.get("/alerts/unread");
+        setAlerts(res.data);
+      } catch (err) {
+        console.error(err);
       }
     };
-    loadAlerts(); 
+    loadAlerts();
 
-    const handleAlert = (alert) => setAlerts((prev) => [alert, ...prev]);
+    if (!socket.connected) {
+      socket.connect();
+    }
+    socket.emit("join_dashboard", user);
+
+    // Listeners
+    const handleAlert = (alert) => {
+      console.log("Received alert:", alert);
+      setAlerts((prev) => {
+        if (prev.some((a) => a._id === alert._id)) return prev;
+        return [alert, ...prev];
+      });
+      // ✅ Trigger toast for ALL users when a new alert arrives
+      toast.success(`New Alert: ${alert.message}`, { icon: '🔔' });
+    };
+
+    const handleRead = ({ id, userId }) => {
+  // Agar kis aur ne padha hai, toh mere UI mein kuch change mat karo
+  if (user?._id !== userId && user?.id !== userId) return;
+
+  setAlerts((prev) =>
+    prev.map((a) => (a._id === id ? { ...a, isRead: true } : a))
+  );
+};
+
     socket.on("alert", handleAlert);
-    return () => socket.off("alert", handleAlert);
-   
-  }, []);
+    socket.on("alert_read", handleRead);
 
-  // Close dropdowns on outside click
+    return () => {
+      socket.off("alert", handleAlert);
+      socket.off("alert_read", handleRead);
+    };
+  }, [user]);
+
+  // Handle Outside Click
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -52,79 +84,82 @@ const TopNavbar = ({ setOpen }) => {
   }, []);
 
   const handleLogout = () => {
-    logout(); // Calls context logout (clears state & storage safely)
-    navigate("/login");
+    logout();
+    socket.disconnect();
+    navigate("/");
+  };
+
+  const markAsRead = async (id) => {
+    // Optimistic UI Update: Remove it instantly before API finishes
+    setAlerts((prev) => prev.filter((a) => a._id !== id));
+    try {
+      await API.patch(`/alerts/${id}/read`);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
-    <header className="h-16 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
-      
-      {/* LEFT: Mobile Menu & Search */}
+    <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-white dark:bg-gray-900 border-b dark:border-gray-800">
+      {/* LEFT */}
       <div className="flex items-center gap-4">
-        <button 
-          className="md:hidden p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-          onClick={() => setOpen(true)}
-        >
+        <button onClick={() => setOpen(true)} className="md:hidden">
           <Menu size={20} />
         </button>
-
-        <div className="hidden md:flex items-center bg-gray-100 border border-transparent focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-indigo-500/10 px-3 py-2 rounded-lg transition-all dark:bg-gray-800 dark:focus-within:bg-gray-900 w-64 lg:w-96">
-          <Search size={18} className="text-gray-400 shrink-0" />
-          <input
-            className="bg-transparent outline-none ml-2 text-sm w-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            placeholder="Search datasets, insights..."
-          />
+        {/* RIGHT INSIDE YOUR LEFT SECTION */}
+        <div 
+          onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+          className="hidden md:flex items-center bg-gray-100 px-3 py-2 rounded-lg w-64 dark:bg-gray-800 cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all group"
+        >
+          <Search size={18} className="text-gray-400 group-hover:text-indigo-500 transition-colors" />
+          <span className="ml-2 text-gray-400 text-sm w-full select-none">
+            Search... <kbd className="hidden lg:inline-block ml-8 text-[10px] border px-1 rounded bg-white dark:bg-gray-700 text-gray-500">Ctrl K</kbd>
+          </span>
         </div>
       </div>
 
-      {/* RIGHT: Actions */}
-      <div className="flex items-center gap-3 sm:gap-5 relative">
-        
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
-          aria-label="Toggle Theme"
-        >
+      {/* RIGHT */}
+      <div className="flex items-center gap-4 relative">
+        <button onClick={toggleTheme}>
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        {/* Notifications */}
+        {/* 🔔 NOTIFICATIONS */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+            className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
           >
-            <Bell size={20} />
+            <Bell size={20} className="align-middle" />
             {alerts.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-              </span>
+              <span className="absolute top-0 right-0 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
             )}
           </button>
 
-          {/* Notifications Dropdown */}
           <AnimatePresence>
             {showNotifications && (
               <Motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl p-4 dark:bg-gray-900 dark:border-gray-800 z-50"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-900 shadow-xl rounded-xl p-4 z-50 border dark:border-gray-800"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">Alerts</h3>
-                  {alerts.length > 0 && <span className="text-xs text-indigo-500 cursor-pointer">Mark all read</span>}
-                </div>
+                <h3 className="text-sm font-semibold mb-2">Unread Notifications</h3>
+
                 {alerts.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">You're all caught up!</p>
+                  <p className="text-sm text-center py-4 text-gray-400">All caught up!</p>
                 ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                    {alerts.map((alert, index) => (
-                      <div key={index} className="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                        {alert.message}
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {alerts.map((alert) => (
+                      <div
+                        key={alert._id}
+                        onClick={() => markAsRead(alert._id)}
+                        className="p-3 rounded-lg text-sm cursor-pointer transition bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <p className="font-medium text-gray-900 dark:text-white">{alert.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(alert.createdAt).toLocaleTimeString()}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -134,41 +169,23 @@ const TopNavbar = ({ setOpen }) => {
           </AnimatePresence>
         </div>
 
-        {/* Profile Dropdown */}
+        {/* PROFILE */}
         <div className="relative" ref={profileRef}>
-          <button
-            onClick={() => setShowProfile(!showProfile)}
-            className="flex items-center gap-2 cursor-pointer p-1 pr-2 rounded-full border border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold dark:bg-indigo-900 dark:text-indigo-300">
-              {user?.email?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <div className="hidden md:flex flex-col items-start">
-              <span className="text-sm font-medium text-gray-900 dark:text-white leading-none">
-                {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : "User"}
-              </span>
+          <button onClick={() => setShowProfile(!showProfile)}>
+            <div className="h-8 w-8 rounded-full bg-indigo-500 text-white flex items-center justify-center font-medium">
+              {user?.email?.charAt(0)?.toUpperCase() || "U"}
             </div>
           </button>
 
           <AnimatePresence>
             {showProfile && (
-              <Motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 dark:bg-gray-900 dark:border-gray-800 z-50"
-              >
-                <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 mb-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Signed in as</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.email}</p>
-                </div>
+              <Motion.div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 shadow-xl rounded-xl p-2 z-50">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg dark:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                  className="flex items-center gap-2 w-full p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                 >
                   <LogOut size={16} />
-                  Log out
+                  Logout
                 </button>
               </Motion.div>
             )}

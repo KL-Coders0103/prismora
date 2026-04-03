@@ -1,22 +1,28 @@
-import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import toast from "react-hot-toast";
+import { PERMISSIONS } from "../../utils/permissions";
 
-const ProtectedRoute = ({ allowedRoles }) => {
-  const { user, isAuthenticated } = useAuth();
+const ProtectedRoute = ({ permission }) => {
+  const { user, loading } = useAuth();
 
-  // Redirect to login if not logged in
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (loading) return <div>Loading...</div>;
 
-  // Check role-based access
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    // We use a timeout to prevent rendering issues with toast during React lifecycle
-    setTimeout(() => toast.error("You do not have permission to access this page."), 0);
+  if (!user) return <Navigate to="/login" />;
+
+  const userRole = user?.role?.toLowerCase();
+
+  if (
+    permission &&
+    (!PERMISSIONS[permission] ||
+      !PERMISSIONS[permission].includes(userRole))
+  ) {
+    console.warn("ACCESS DENIED:", permission, userRole);
     return <Navigate to="/dashboard" replace />;
   }
+
+  console.log("PERMISSION:", permission);
+  console.log("USER ROLE:", user.role);
+  console.log("ALLOWED:", PERMISSIONS[permission]);
 
   return <Outlet />;
 };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   LayoutDashboard, BarChart3, Users, Upload, FileText,
   Settings, Brain, Bell, Clock, User, X
@@ -6,28 +6,34 @@ import {
 import { NavLink } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
+import { PERMISSIONS } from "../../utils/permissions";
 
 const menu = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", roles: ["admin", "analyst", "viewer"] },
-  { icon: Brain, label: "AI Insights", path: "/ai-insights", roles: ["admin", "analyst"] },
-  { icon: Brain, label: "AI Assistant", path: "/ai-chat", roles: ["admin", "analyst"] },
-  { icon: BarChart3, label: "Sales Analytics", path: "/sales-analytics", roles: ["admin", "analyst"] },
-  { icon: Users, label: "Customer Analytics", path: "/customer-analytics", roles: ["admin", "analyst"] },
-  { icon: Upload, label: "Upload Data", path: "/upload-data", roles: ["admin", "analyst"] },
-  { icon: FileText, label: "Reports", path: "/reports", roles: ["admin", "analyst", "viewer"] },
-  { icon: Bell, label: "Alerts", path: "/alerts", roles: ["admin", "analyst"] },
-  { icon: Users, label: "Team Management", path: "/team", roles: ["admin"] },
-  { icon: Clock, label: "Activity Logs", path: "/activity", roles: ["admin"] },
-  { icon: User, label: "Profile", path: "/profile", roles: ["admin", "analyst", "viewer"] },
-  { icon: Settings, label: "Settings", path: "/settings", roles: ["admin", "analyst", "viewer"] }
+  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", key: "dashboard" },
+  { icon: Brain, label: "AI Insights", path: "/ai-insights", key: "aiInsights" },
+  { icon: Brain, label: "AI Assistant", path: "/ai-chat", key: "aiChat" },
+  { icon: BarChart3, label: "Sales Analytics", path: "/sales-analytics", key: "sales" },
+  { icon: Users, label: "Customer Analytics", path: "/customers", key: "customers" },
+  { icon: Upload, label: "Upload Data", path: "/upload", key: "upload" },
+  { icon: FileText, label: "Reports", path: "/reports", key: "reports" },
+  { icon: Bell, label: "Alerts", path: "/alerts", key: "alerts" },
+  { icon: Users, label: "Team Management", path: "/team", key: "team" },
+  { icon: Clock, label: "Activity Logs", path: "/logs", key: "logs" },
+  { icon: User, label: "Profile", path: "/profile", key: "profile" },
+  { icon: Settings, label: "Settings", path: "/settings", key: "settings" }
 ];
 
 const Sidebar = ({ open, setOpen }) => {
   const { user } = useAuth();
 
-  const filteredMenu = menu.filter((item) =>
-    item.roles.includes(user?.role)
-  );
+  // ✅ SAFE + OPTIMIZED RBAC FILTER
+  const filteredMenu = useMemo(() => {
+    if (!user) return [];
+
+    return menu.filter((item) =>
+      PERMISSIONS[item.key]?.includes(user.role?.toLowerCase())
+    );
+  }, [user]);
 
   return (
     <aside
@@ -62,7 +68,7 @@ const Sidebar = ({ open, setOpen }) => {
             <Motion.div whileHover={{ x: 4 }} key={item.path}>
               <NavLink
                 to={item.path}
-                onClick={() => setOpen(false)} // Close on mobile after clicking
+                onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
                   ${

@@ -1,38 +1,42 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
     try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored) : null;
-    } catch (error) {
-      console.error("Failed to parse user from local storage", error);
-      return null;
+      const storedUser = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+
+      if (storedUser && token) {
+        const parsedUser = JSON.parse(storedUser);
+        parsedUser.role = parsedUser.role?.toLowerCase();
+        setUser(parsedUser);
+      }
+    } catch (err) {
+      console.error("Auth load error:", err);
+    } finally {
+      setLoading(false);
     }
-  });
+  }, []);
 
   const login = (data) => {
-    try {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      setUser(data.user);
-    } catch (error) {
-      console.error("Failed to save auth data", error);
+    const userData = {
+      ...data.user,
+      role: data.user.role?.toLowerCase(),
     }
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      setUser(null);
-    } catch (error) {
-      console.error("Failed to clear auth data", error);
-    }
+    localStorage.clear();
+    localStorage.removeItem("token");
+    setUser(null);
   };
-
-  const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider
@@ -40,7 +44,8 @@ export const AuthProvider = ({ children }) => {
         user,
         login,
         logout,
-        isAuthenticated,
+        isAuthenticated: !!user,
+        loading,
       }}
     >
       {children}

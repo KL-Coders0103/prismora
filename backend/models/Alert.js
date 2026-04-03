@@ -22,10 +22,13 @@ const alertSchema = new mongoose.Schema(
       enum: ["system", "analytics_engine", "ml_engine", "user"],
       default: "system"
     },
-    isRead: {
-      type: Boolean,
-      default: false
-    }
+    // ✅ Replaced `isRead: Boolean` with an array to track exactly WHICH users have read the alert
+    readBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User" // Ensure this matches the exact name of your User model exported in mongoose
+      }
+    ]
   },
   {
     timestamps: true
@@ -34,6 +37,8 @@ const alertSchema = new mongoose.Schema(
 
 // Indexes for faster dashboard retrieval
 alertSchema.index({ createdAt: -1 });
-alertSchema.index({ severity: 1, isRead: 1 });
+
+// ✅ Updated index: swapped `isRead` for `readBy` to optimize the $ne (not equal) queries in the controller
+alertSchema.index({ severity: 1, readBy: 1 });
 
 module.exports = mongoose.model("Alert", alertSchema);

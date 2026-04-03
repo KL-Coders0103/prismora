@@ -1,8 +1,8 @@
 import axios from "axios";
 import toast from "react-hot-toast";
 
-// Use environment variables for production readiness
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// 🔥 DYNAMIC API URL (Works flawlessly on PC and Mobile without .env)
+const API_URL = `http://${window.location.hostname}:5000/api`;
 
 const API = axios.create({
   baseURL: API_URL,

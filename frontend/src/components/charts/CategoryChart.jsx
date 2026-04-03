@@ -19,7 +19,7 @@ const CategoryChart = ({ data = [] }) => {
 
   return (
     <div className="h-72 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
           <XAxis dataKey="category" stroke={axisColor} axisLine={false} tickLine={false} dy={10} />

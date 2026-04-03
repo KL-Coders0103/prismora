@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { Sparkles, X, Activity } from "lucide-react";
 
 import KPICard from "../../components/cards/KPICard";
 import RevenueChart from "../../components/charts/RevenueChart";
 import SalesChart from "../../components/charts/SalesChart";
 import CustomerChart from "../../components/charts/CustomerChart";
 import HeatMap from "../../components/charts/HeatMap";
-
 import API from "../../services/api";
-import socket from "../../services/socket"; 
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
-  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  
+  // AI CEO Mode States
+  const [ceoSummary, setCeoSummary] = useState(null);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -24,100 +24,107 @@ const Dashboard = () => {
         setStats(res.data);
       } catch (err) {
         console.error(err);
-        setError("Failed to load dashboard data. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
-
     loadDashboard();
-
-    const handleAlert = (alert) => setAlerts((prev) => [alert, ...prev]);
-    socket.on("alert", handleAlert);
-    return () => socket.off("alert", handleAlert);
-
   }, []);
 
-  const dismissAlert = (index) => {
-    setAlerts((prev) => prev.filter((_, i) => i !== index));
+  const handleGenerateSummary = async () => {
+    setIsGeneratingAI(true);
+    try {
+      // Calls the new algorithmic backend route
+      const res = await API.get("/analytics/ceo-summary");
+      setCeoSummary(res.data.summary);
+    } catch {
+      console.error("Failed to fetch CEO Summary");
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Error State */}
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400">
-          <div className="flex items-center">
-            <span className="font-medium">Error:</span>
-            <span className="ml-2">{error}</span>
-          </div>
+      
+      {/* HEADER & AI BUTTON */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Business Overview</h1>
         </div>
-      )}
 
-      {/* Real-time Alerts */}
+        <button
+          onClick={handleGenerateSummary}
+          disabled={isGeneratingAI}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium shadow-lg transition-all
+            bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:scale-105 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
+        >
+          {isGeneratingAI ? (
+            <Activity className="animate-pulse" size={18} />
+          ) : (
+            <Sparkles size={18} />
+          )}
+          {isGeneratingAI ? "Analyzing Data..." : "AI CEO Summary"}
+        </button>
+      </div>
+
+      {/* AI CEO SUMMARY CARD */}
       <AnimatePresence>
-        {alerts.map((a, index) => (
+        {ceoSummary && (
           <Motion.div
-            key={index}
-            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-            animate={{ opacity: 1, height: "auto", marginBottom: "12px" }}
-            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 p-4 text-amber-800 shadow-sm dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400"
+            initial={{ opacity: 0, height: 0, y: -20 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -20 }}
+            className="overflow-hidden"
           >
-            <span className="flex items-center gap-2">
-              <span className="text-lg">⚠️</span> {a.message}
-            </span>
-            <button
-              onClick={() => dismissAlert(index)}
-              className="rounded-md p-1 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors"
-            >
-              <X size={16} />
-            </button>
+            <div className="relative p-6 rounded-2xl bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-500/20 shadow-inner">
+              <button 
+                onClick={() => setCeoSummary(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <X size={20} />
+              </button>
+              
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="text-purple-500" size={24} />
+                <h2 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
+                  Executive Briefing
+                </h2>
+              </div>
+              
+              <ul className="space-y-3">
+                {ceoSummary.map((point, index) => (
+                  <Motion.li 
+                    key={index}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.2 }}
+                    className="flex gap-3 text-gray-700 dark:text-gray-300 leading-relaxed"
+                  >
+                    <span className="text-indigo-500 mt-1">•</span>
+                    {point}
+                  </Motion.li>
+                ))}
+              </ul>
+            </div>
           </Motion.div>
-        ))}
+        )}
       </AnimatePresence>
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <Motion.h1
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white"
-        >
-          Dashboard Overview
-        </Motion.h1>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          Last updated: {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
-        </div>
-      </div>
-
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-        <KPICard title="Revenue" value={stats?.revenue || 0} change={stats?.revenueChange} loading={loading} />
-        <KPICard title="Sales" value={stats?.sales || 0} change={stats?.salesChange} loading={loading} />
-        <KPICard title="Customers" value={stats?.customers || 0} change={stats?.customerChange} loading={loading} />
-        <KPICard title="Conversion Rate" value={stats?.conversionRate || 0} change={stats?.conversionChange} loading={loading} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard title="Revenue" value={stats?.revenue || 0} loading={loading} />
+        <KPICard title="Sales" value={stats?.sales || 0} loading={loading} />
+        <KPICard title="Customers" value={stats?.customers || 0} loading={loading} />
+        {/* 🔥 FIX: Changed title to "Conversion Rate" to match KPICard maps */}
+        <KPICard title="Conversion Rate" value={stats?.conversionRate || 0} loading={loading} />
       </div>
 
-      {/* REVENUE CHART */}
-      <div className="w-full">
-        {loading ? (
-          <div className="h-[300px] w-full bg-gray-100 animate-pulse rounded-xl" /> 
-        ) : (
-          <RevenueChart data={stats?.revenueData || []} />
-        )}
-      </div>
-
-      {/* MULTI-CHART ROW */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {!loading && <SalesChart data={stats?.salesData || []} />}
-        {!loading && <CustomerChart data={stats?.customerData || []} />}
-      </div>
-
-      {/* HEATMAP / PRODUCT PERFORMANCE */}
-      <div className="w-full">
-        <HeatMap data={stats?.heatmapData} loading={loading} />
-      </div>
+      {/* CHARTS */}
+      <RevenueChart data={stats?.revenueData || []} />
+      <SalesChart data={stats?.salesData || []} />
+      <CustomerChart data={stats?.customerData || []} />
+      <HeatMap data={stats?.heatmapData || []} />
     </div>
   );
 };

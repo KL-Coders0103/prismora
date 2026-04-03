@@ -1,6 +1,6 @@
 const Alert = require("../models/Alert");
 const Sales = require("../models/Sales");
-const { getIO } = require("../sockets/realtimeSocket"); // Adjusted to match your socket setup
+const { getIO } = require("../sockets/realtimeSocket");
 
 // CREATE ALERT
 exports.createAlert = async (
@@ -11,39 +11,59 @@ exports.createAlert = async (
   metadata = {}
 ) => {
   try {
-    const alert = await Alert.create({ message, type, severity, source, metadata });
+    if (!message || message.trim().length < 3) return null;
 
-    // Emit via WebSockets
-    const io = getIO();
-    if (io) {
-      io.emit("alert", alert);
+    const alert = await Alert.create({
+      message: message.trim(),
+      type: type.toLowerCase(),
+      severity: severity.toLowerCase(),
+      source,
+      metadata
+    });
+
+    // SAFE SOCKET EMIT
+    try {
+      const io = getIO?.();
+      if (io) {
+        io.emit("alert", {
+          _id: alert._id,
+          message: alert.message,
+          type: alert.type,
+          severity: alert.severity,
+          createdAt: alert.createdAt
+        });
+      }
+    } catch (e) {
+      console.warn("Socket emit skipped");
     }
 
     return alert;
+
   } catch (error) {
-    console.error("[Alert Creation Error]:", error.message);
+    console.error("[Alert Service Error]:", error.message);
+    return null;
   }
 };
 
-// AI ANOMALY DETECTION
+// ANOMALY DETECTION
 exports.detectRevenueAnomaly = async () => {
   try {
     const revenue = await Sales.aggregate([
       { $group: { _id: "$region", revenue: { $sum: "$revenue" } } }
     ]);
 
-    // FIX: Using for...of instead of forEach to respect async/await
     for (const region of revenue) {
       if (region.revenue > 150000) {
         await exports.createAlert(
-          `Unusual revenue spike detected in the ${region._id} region.`,
-          "analytics", // Matched with Alert schema enums
+          `Revenue spike detected in ${region._id || "Unknown"} region`,
+          "analytics",
           "warning",
           "analytics_engine",
           { region: region._id, revenue: region.revenue }
         );
       }
     }
+
   } catch (error) {
     console.error("[Anomaly Detection Error]:", error.message);
   }

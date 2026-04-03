@@ -1,69 +1,93 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { Send, Bot, User, Sparkles, Loader2 } from "lucide-react";
-import { sendChatMessage } from "../../services/chatService"; // Ensure this API call is set up
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { sendChatMessage } from "../../services/chatService";
 
 const suggestions = [
-  "What is our top selling product?",
-  "Which region has the highest revenue?",
+  "Sales by category",
+  "What are my top products?",
   "Show me the monthly sales trend",
   "Forecast sales for next 30 days",
-  "Are there any anomalies in sales?"
+  "Total earnings"
 ];
+
+const COLORS = ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6"];
+
+const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
 const AIChat = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const chatRef = useRef(null);
+  const requestRef = useRef(0);
 
-  const scrollToBottom = () => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  };
-
+  // Auto-scroll to bottom
   useEffect(() => {
-    scrollToBottom();
+    chatRef.current?.scrollTo({
+      top: chatRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, loading]);
 
   const handleSendMessage = async (textToUse) => {
-    const query = typeof textToUse === 'string' ? textToUse : message;
+    if (loading) return;
+
+    const query = typeof textToUse === "string" ? textToUse : message;
     if (!query.trim()) return;
 
+    const requestId = ++requestRef.current;
+
     const userMsg = {
-      id: Date.now().toString(),
+      id: generateId(),
       role: "user",
       text: query.trim(),
-      time: new Date()
     };
 
-    setMessages(prev => [...prev, userMsg].slice(-100));
+    setMessages((prev) => [...prev, userMsg]);
     setMessage("");
     setLoading(true);
 
     try {
-      const reply = await sendChatMessage(query);
-      
+      const res = await sendChatMessage(query);
+
+      if (requestId !== requestRef.current) return;
+
+      // Extract text and chart data from the backend response
+      const text = typeof res === "string" ? res : (res?.text || res?.reply || "No response from AI");
+      const chartType = res?.chartType;
+      const chartData = res?.chartData;
+      const xKey = res?.xKey;
+      const yKey = res?.yKey;
+
       const aiMsg = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         role: "ai",
-        text: reply.reply || reply, // Handle depending on how your axios interceptor returns data
-        time: new Date()
+        text,
+        chartType,
+        chartData,
+        xKey,
+        yKey
       };
-      
-      setMessages(prev => [...prev, aiMsg].slice(-100));
-    } catch  {
+
+      setMessages((prev) => [...prev, aiMsg]);
+
+    } catch (err) {
+      console.error(err);
+      if (requestId !== requestRef.current) return;
+
       const errorMsg = {
-        id: (Date.now() + 2).toString(),
+        id: generateId(),
         role: "ai",
-        text: "I'm sorry, I encountered an error processing your request. Please try again.",
-        time: new Date(),
-        isError: true
+        text: "AI service error. Unable to analyze data at this moment.",
+        isError: true,
       };
-      setMessages(prev => [...prev, errorMsg].slice(-100));
+
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
-      setLoading(false);
+      if (requestId === requestRef.current) setLoading(false);
     }
   };
 
@@ -74,127 +98,166 @@ const AIChat = () => {
     }
   };
 
+  // 📊 Helper to render interactive charts inside the chat bubble
+  const renderChart = (msg) => {
+    if (!msg.chartData || msg.chartData.length === 0) return null;
+
+    return (
+      <div className="h-64 w-full min-w-[300px] mt-4 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <ResponsiveContainer width="100%" height="100%">
+          {msg.chartType === "bar" ? (
+            <BarChart data={msg.chartData}>
+              <XAxis dataKey={msg.xKey} stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis hide />
+              <Tooltip 
+                cursor={{ fill: 'transparent' }} 
+                contentStyle={{ borderRadius: '8px', backgroundColor: '#1f2937', color: '#fff', border: 'none' }} 
+                itemStyle={{ color: '#fff' }}
+              />
+              <Bar dataKey={msg.yKey} fill="#4f46e5" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          ) : (
+            <PieChart>
+              <Pie 
+                data={msg.chartData} 
+                dataKey={msg.yKey} 
+                nameKey={msg.xKey} 
+                cx="50%" cy="50%" 
+                innerRadius={60} 
+                outerRadius={80} 
+                stroke="none"
+              >
+                {msg.chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ borderRadius: '8px', backgroundColor: '#1f2937', color: '#fff', border: 'none' }} 
+                itemStyle={{ color: '#fff' }}
+              />
+            </PieChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    );
+  };
+
   return (
     <div className="mx-auto max-w-4xl h-[calc(100vh-6rem)] flex flex-col space-y-4">
-      {/* Header */}
-      <div className="shrink-0 flex flex-col">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-          <Sparkles className="text-indigo-600 dark:text-indigo-400" />
-          AI Assistant
-        </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Query your data using natural language. Ask about sales, trends, or predictions.
-        </p>
-      </div>
 
-      {/* Suggested Prompts */}
-      <div className="shrink-0 flex flex-wrap gap-2">
-        {suggestions.map((s, idx) => (
+      {/* HEADER */}
+      <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+        <Sparkles className="text-indigo-500" />
+        Conversational BI
+      </h1>
+
+      {/* SUGGESTIONS */}
+      <div className="flex flex-wrap gap-2">
+        {suggestions.map((s, i) => (
           <button
-            key={idx}
+            key={i}
             onClick={() => handleSendMessage(s)}
             disabled={loading}
-            className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
+            className="px-3 py-1.5 text-xs font-medium border border-gray-200 dark:border-gray-700 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 transition-colors disabled:opacity-50 text-gray-600 dark:text-gray-300"
           >
             {s}
           </button>
         ))}
       </div>
 
-      {/* Chat Window */}
-      <div className="flex-1 flex flex-col rounded-xl border border-gray-200 bg-gray-50 overflow-hidden shadow-sm dark:border-gray-800 dark:bg-gray-900/50 transition-colors duration-300">
-        
-        {/* Messages Area */}
-        <div ref={chatRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
-          {messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center opacity-70">
-              <Bot size={48} className="mb-4 text-gray-400 dark:text-gray-600" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">How can I help you today?</h3>
-              <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
-                I can analyze your database, predict churn, forecast revenue, and find data anomalies.
-              </p>
+      {/* CHAT */}
+      <div className="flex-1 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm rounded-xl flex flex-col overflow-hidden">
+
+        <div ref={chatRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+
+          {messages.length === 0 && (
+            <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-3">
+              <Bot size={48} className="text-indigo-200 dark:text-indigo-500/30" />
+              <p>I am your Data Assistant.<br/>Ask me to generate charts or analyze your sales!</p>
             </div>
-          ) : (
-            <AnimatePresence initial={false}>
-              {messages.map((msg) => {
-                const isUser = msg.role === "user";
-                return (
-                  <Motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    className={`flex items-end gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}
-                  >
+          )}
+
+          <AnimatePresence>
+            {messages.map((msg) => {
+              const isUser = msg.role === "user";
+
+              return (
+                <Motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${isUser ? "justify-end" : "justify-start"}`}
+                >
+                  <div className={`flex items-start gap-3 max-w-[85%] md:max-w-[75%] ${isUser ? "flex-row-reverse" : ""}`}>
+                    
                     {/* Avatar */}
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      isUser 
-                        ? "bg-indigo-600 text-white" 
-                        : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                    <div className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center mt-1 ${
+                      isUser ? "bg-purple-500 text-white" : "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400"
                     }`}>
-                      {isUser ? <User size={16} /> : <Bot size={16} />}
+                      {isUser ? <User size={16} /> : <Bot size={18} />}
                     </div>
 
-                    {/* Bubble */}
-                    <div className={`relative max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                      isUser
-                        ? "bg-indigo-600 text-white rounded-br-none"
-                        : msg.isError 
-                          ? "bg-red-50 border border-red-200 text-red-700 rounded-bl-none dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400"
-                          : "bg-white border border-gray-200 text-gray-800 rounded-bl-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
-                    }`}>
-                      <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
-                      <span className={`mt-1 block text-[10px] ${isUser ? "text-indigo-200" : "text-gray-400 dark:text-gray-500"}`}>
-                        {msg.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                    {/* Message Bubble & Chart Container */}
+                    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} w-full`}>
+                      <div className={`px-5 py-3 rounded-2xl shadow-sm text-sm leading-relaxed ${
+                        isUser
+                          ? "bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-tr-none"
+                          : msg.isError 
+                            ? "bg-red-50 dark:bg-red-500/10 text-red-600 border border-red-100 dark:border-red-500/20 rounded-tl-none"
+                            : "bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-800 dark:text-gray-200 rounded-tl-none"
+                      }`}>
+                        {msg.text.split("\n").map((line, i) => (
+                          <p key={i} className="min-h-[1rem]">{line}</p>
+                        ))}
+                      </div>
+
+                      {/* Render Chart if AI provided one */}
+                      {renderChart(msg)}
                     </div>
-                  </Motion.div>
-                );
-              })}
-            </AnimatePresence>
-          )}
+                    
+                  </div>
+                </Motion.div>
+              );
+            })}
+          </AnimatePresence>
 
           {/* Typing Indicator */}
           {loading && (
-            <Motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-end gap-3"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                <Bot size={16} />
-              </div>
-              <div className="rounded-2xl rounded-bl-none border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500"></span>
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500" style={{ animationDelay: "0.15s" }}></span>
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 dark:bg-gray-500" style={{ animationDelay: "0.3s" }}></span>
+            <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 shrink-0 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mt-1">
+                  <Bot size={18} />
+                </div>
+                <div className="px-5 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-tl-none flex items-center gap-2">
+                  <Loader2 className="animate-spin text-indigo-500" size={16} />
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">Crunching data...</span>
                 </div>
               </div>
             </Motion.div>
           )}
         </div>
 
-        {/* Input Area */}
-        <div className="shrink-0 border-t border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+        {/* INPUT */}
+        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
           <div className="relative flex items-center">
             <input
-              type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={loading}
-              placeholder="Ask PRISMORA a question..."
-              className="w-full rounded-full border border-gray-300 bg-gray-50 py-3 pl-4 pr-12 text-sm text-gray-900 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-indigo-500 dark:focus:bg-gray-900"
+              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none rounded-full py-3.5 pl-6 pr-14 text-gray-900 dark:text-white shadow-sm disabled:opacity-60 transition-all"
+              placeholder="Ask about your sales, regions, or products..."
             />
-            <button
-              onClick={handleSendMessage}
+            <button 
+              onClick={() => handleSendMessage()}
               disabled={!message.trim() || loading}
-              className="absolute right-2 flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-white transition-all hover:bg-indigo-700 disabled:scale-90 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+              className="absolute right-2 p-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-full transition-colors shadow-sm"
             >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className="ml-0.5" />}
+              <Send size={18} className="ml-0.5" />
             </button>
           </div>
         </div>
+
       </div>
     </div>
   );

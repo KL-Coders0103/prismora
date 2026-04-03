@@ -33,11 +33,11 @@ const HeatMap = ({ data = [], loading }) => {
       <h2 className="mb-6 text-lg font-bold text-gray-900 dark:text-white">Product Performance</h2>
       
       <div className="space-y-5">
-        {products.map((p, i) => {
+        {products.map((p) => {
           const percentage = maxScore > 0 ? (p.score / maxScore) * 100 : 0;
           
           return (
-            <div key={i}>
+            <div key={`${p.name}-${p.score}`}>
               <div className="flex justify-between text-sm mb-1.5 font-medium">
                 <span className="text-gray-700 dark:text-gray-300">{p.name}</span>
                 <span className="text-gray-900 dark:text-white">

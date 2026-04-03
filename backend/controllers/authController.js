@@ -13,7 +13,7 @@ const generateToken = (user) => {
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email and password are required." });
@@ -28,17 +28,14 @@ exports.register = async (req, res) => {
       name,
       email: email.toLowerCase(),
       password,
-      role: role || "viewer"
+      role: "viewer" // 🔒 FORCE VIEWER ALWAYS
     });
 
     const token = generateToken(user);
 
-    // Don't await logActivity in the critical response path for registration
-    logActivity(user._id, "user_register", { email: user.email }).catch(console.error);
-
     res.status(201).json({
       message: "User registered successfully",
-      token, // UX Upgrade: Auto-login after registration
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -46,8 +43,9 @@ exports.register = async (req, res) => {
         role: user.role
       }
     });
+
   } catch (error) {
-    console.error("[Auth Register Error]:", error);
+    console.error("[Register Error]:", error);
     res.status(500).json({ message: "Failed to register user." });
   }
 };
@@ -57,23 +55,14 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required." });
-    }
-
     const user = await User.findOne({ email: email.toLowerCase() });
 
-    if (!user) {
-      return res.status(401).json({ message: "Invalid email or password." }); // Prevent enumeration
-    }
-
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password." });
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ message: "Invalid credentials." });
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ message: "This account has been disabled. Contact an administrator." });
+      return res.status(403).json({ message: "Account disabled." });
     }
 
     const token = generateToken(user);
@@ -84,7 +73,6 @@ exports.login = async (req, res) => {
     logActivity(user._id, "user_login").catch(console.error);
 
     res.status(200).json({
-      message: "Login successful",
       token,
       user: {
         id: user._id,
@@ -93,28 +81,27 @@ exports.login = async (req, res) => {
         role: user.role
       }
     });
+
   } catch (error) {
-    console.error("[Auth Login Error]:", error);
-    res.status(500).json({ message: "An error occurred during login." });
+    res.status(500).json({ message: "Login failed." });
   }
 };
 
-// GET ALL USERS (Admin)
+// USERS
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    const users = await User.find().select("-password").lean();
     res.status(200).json(users);
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch users." });
   }
 };
 
-// DELETE USER (Admin)
+// DELETE
 exports.deleteUser = async (req, res) => {
   try {
-    // Prevent an admin from deleting themselves
     if (req.user.id === req.params.id) {
-      return res.status(400).json({ message: "You cannot delete your own active session account." });
+      return res.status(400).json({ message: "Cannot delete yourself." });
     }
 
     const user = await User.findByIdAndDelete(req.params.id);
@@ -123,12 +110,52 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Fixed Bug: Actor is req.user.id, NOT req.params.id
-    await logActivity(req.user.id, "user_deleted", { deletedUserId: req.params.id });
+    await logActivity(req.user.id, "user_deleted", {
+      deletedUserId: req.params.id
+    });
 
-    res.status(200).json({ message: "User deleted successfully." });
+    res.status(200).json({ message: "User deleted." });
+
+  } catch {
+    res.status(500).json({ message: "Delete failed." });
+  }
+};
+
+exports.updateUserRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    const allowedRoles = ["admin", "analyst", "viewer"];
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role." });
+    }
+
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.role = role;
+    await user.save();
+
+    await logActivity(req.user.id, "update_user_role", {
+      targetUser: user._id,
+      newRole: role
+    });
+
+    res.status(200).json({
+      message: "User role updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role
+      }
+    });
+
   } catch (error) {
-    console.error("[Delete User Error]:", error);
-    res.status(500).json({ message: "Failed to delete user." });
+    console.error("[Update Role Error]:", error);
+    res.status(500).json({ message: "Failed to update role." });
   }
 };

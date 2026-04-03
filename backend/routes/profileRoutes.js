@@ -3,17 +3,20 @@ const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
 const authMiddleware = require("../middleware/authMiddleware");
-const { getProfile, updateProfile } = require("../controllers/profileController");
+const { getProfile, updateProfile, updatePassword } = require("../controllers/profileController");
 
+// ✅ UPDATED LIMIT
 const profileLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 20,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: "Too many profile update requests. Please wait." }
+  message: { message: "Too many profile requests. Please wait." }
 });
 
-router.get("/", authMiddleware, getProfile);
-router.put("/", authMiddleware, profileLimiter, updateProfile);
+// ✅ ORDER FIXED
+router.get("/", profileLimiter, authMiddleware, getProfile);
+router.put("/", profileLimiter, authMiddleware, updateProfile);
+router.put("/password", profileLimiter, authMiddleware, updatePassword);
 
 module.exports = router;

@@ -25,7 +25,7 @@ const SalesChart = ({ data = [], loading }) => {
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 transition-colors duration-300">
       <h2 className="mb-6 text-lg font-bold text-gray-900 dark:text-white">Sales by Category</h2>
       <div className="h-[320px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
             <XAxis dataKey="category" stroke={axisColor} axisLine={false} tickLine={false} dy={10} />

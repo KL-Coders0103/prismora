@@ -33,7 +33,7 @@ const CustomerChart = ({ data = [], loading }) => {
       <h2 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">Revenue by Region</h2>
       
       <div className="relative h-[320px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
               data={chartData}

@@ -1,140 +1,197 @@
 const Sales = require("../models/Sales");
 
-// Use built-in standard formatter for cleaner strings
+// =========================
+// FORMAT CURRENCY
+// =========================
 const formatCurrency = (value) => {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0
-  }).format(value);
+  }).format(value || 0);
 };
 
+// =========================
+// SMART INTENT DETECTION
+// =========================
+const detectIntent = (query) => {
+  const q = query.toLowerCase();
+
+  if (/top|best|highest.*product|selling/i.test(q)) return "top_product";
+  if (/region|area|location/i.test(q) && /top|highest|best/i.test(q)) return "top_region";
+  if (/total revenue|overall revenue|earnings/i.test(q)) return "total_revenue";
+  if (/category|categories/i.test(q)) return "category";
+  if (/trend|growth|monthly|performance/i.test(q)) return "trend";
+
+  return "unknown";
+};
+
+// =========================
+// SMART FALLBACK
+// =========================
+const smartFallback = () => {
+  return `🤖 I didn’t fully understand that.
+
+But I can help you with:
+
+• 📊 Sales & revenue analysis  
+• 🏆 Top products  
+• 🌍 Regional performance  
+• 📈 Trends & growth  
+• 🔮 Forecasting  
+
+👉 Try asking:
+• "What is total revenue?"
+• "Top selling product"
+• "Show sales trend"
+• "Which region performs best?"`;
+};
+
+// =========================
+// MAIN PROCESS FUNCTION
+// =========================
 exports.processQuery = async (query) => {
   try {
-    const safeQuery = query.toLowerCase();
+    const intent = detectIntent(query);
 
     // =========================
-    // TOP SELLING PRODUCT
+    // 🏆 TOP PRODUCT
     // =========================
-    if (
-      safeQuery.includes("top product") ||
-      safeQuery.includes("best product") ||
-      safeQuery.includes("highest selling product")
-    ) {
+    if (intent === "top_product") {
       const result = await Sales.aggregate([
         { $group: { _id: "$product", total: { $sum: "$quantity" } } },
         { $sort: { total: -1 } },
         { $limit: 1 }
       ]);
 
-      if (!result || result.length === 0 || !result[0]._id) {
-        return "I don't have enough product sales data to determine the top seller right now.";
+      if (!result.length) {
+        return "⚠️ No product data available.";
       }
-      return `Your top-selling product is **${result[0]._id}** with ${result[0].total.toLocaleString()} units sold.`;
+
+      return `🏆 Top Performing Product
+
+• Product: ${result[0]._id}
+• Units Sold: ${result[0].total}
+
+This product is currently leading your sales 🚀`;
     }
 
     // =========================
-    // HIGHEST REVENUE REGION
+    // 🌍 TOP REGION
     // =========================
-    if (
-      safeQuery.includes("region") ||
-      safeQuery.includes("location") ||
-      safeQuery.includes("highest region")
-    ) {
+    if (intent === "top_region") {
       const result = await Sales.aggregate([
         { $group: { _id: "$region", total: { $sum: "$revenue" } } },
         { $sort: { total: -1 } },
         { $limit: 1 }
       ]);
 
-      if (!result || result.length === 0 || !result[0]._id) {
-        return "I cannot determine regional performance as there is no regional sales data available.";
+      if (!result.length) {
+        return "⚠️ No regional data available.";
       }
-      return `The **${result[0]._id}** region is currently generating the highest revenue at ${formatCurrency(result[0].total)}.`;
+
+      return `🌍 Highest Revenue Region
+
+• Region: ${result[0]._id}
+• Revenue: ${formatCurrency(result[0].total)}
+
+This region is your strongest market 💪`;
     }
 
     // =========================
-    // TOTAL REVENUE
+    // 💰 TOTAL REVENUE
     // =========================
-    if (
-      safeQuery.includes("total revenue") ||
-      safeQuery.includes("overall revenue") ||
-      safeQuery.includes("total sales revenue")
-    ) {
+    if (intent === "total_revenue") {
       const result = await Sales.aggregate([
         { $group: { _id: null, revenue: { $sum: "$revenue" } } }
       ]);
 
-      if (!result || result.length === 0 || !result[0].revenue) {
-        return "There are no recorded sales to calculate total revenue.";
+      if (!result.length) {
+        return "⚠️ No revenue data available.";
       }
-      return `Your total overall revenue stands at **${formatCurrency(result[0].revenue)}**.`;
+
+      return `💰 Total Revenue
+
+${formatCurrency(result[0].revenue)}
+
+This represents your complete business earnings 📊`;
     }
 
     // =========================
-    // SALES BY CATEGORY
+    // 📦 CATEGORY ANALYSIS
     // =========================
-    if (safeQuery.includes("category") || safeQuery.includes("categories")) {
+    if (intent === "category") {
       const result = await Sales.aggregate([
         { $group: { _id: "$category", sales: { $sum: "$quantity" } } },
         { $sort: { sales: -1 } }
       ]);
 
-      if (!result || result.length === 0) {
-        return "No category data is currently available in the dataset.";
+      if (!result.length) {
+        return "⚠️ No category data available.";
       }
 
-      const summary = result.map(r => `${r._id || 'Uncategorized'} (${r.sales.toLocaleString()} units)`).join(", ");
-      return `Here is the breakdown of sales by category: ${summary}.`;
+      const formatted = result
+        .slice(0, 5)
+        .map((r, i) => `${i + 1}. ${r._id || "Unknown"} → ${r.sales} units`)
+        .join("\n");
+
+      return `📦 Category Performance
+
+${formatted}
+
+Top categories are driving your business 📈`;
     }
 
     // =========================
-    // MONTHLY REVENUE TREND
+    // 📈 TREND ANALYSIS
     // =========================
-    if (
-      safeQuery.includes("monthly") ||
-      safeQuery.includes("trend") ||
-      safeQuery.includes("revenue trend")
-    ) {
+    if (intent === "trend") {
       const result = await Sales.aggregate([
-        { $group: { _id: { $month: "$date" }, revenue: { $sum: "$revenue" } } },
-        { $sort: { "_id": 1 } }
+        {
+          $group: {
+            _id: {
+              year: { $year: "$date" },
+              month: { $month: "$date" }
+            },
+            revenue: { $sum: "$revenue" }
+          }
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } }
       ]);
 
-      if (!result || result.length === 0) {
-        return "There is insufficient chronological data to plot a monthly trend.";
+      if (result.length < 2) {
+        return "⚠️ Not enough data to analyze trends.";
       }
 
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const summary = result.map(r => `${months[(r._id || 1) - 1]}: ${formatCurrency(r.revenue)}`).join(" | ");
-      return `Here is your monthly revenue trend: \n${summary}`;
+      const last = result.at(-1);
+      const prev = result.at(-2);
+
+      if (last.revenue > prev.revenue) {
+        const growth = (((last.revenue - prev.revenue) / prev.revenue) * 100).toFixed(1);
+
+        return `📈 Positive Growth
+
+Revenue increased by ${growth}% compared to last month.
+
+Your business is growing 🚀`;
+      } else {
+        const drop = (((prev.revenue - last.revenue) / prev.revenue) * 100).toFixed(1);
+
+        return `📉 Revenue Decline
+
+Revenue dropped by ${drop}% compared to last month.
+
+Consider optimizing weak areas ⚠️`;
+      }
     }
 
     // =========================
-    // TOP 5 PRODUCTS
+    // 🤖 FALLBACK
     // =========================
-    if (safeQuery.includes("top products") || safeQuery.includes("top 5")) {
-      const result = await Sales.aggregate([
-        { $group: { _id: "$product", sales: { $sum: "$quantity" } } },
-        { $sort: { sales: -1 } },
-        { $limit: 5 }
-      ]);
-
-      if (!result || result.length === 0) {
-        return "I don't have enough product data to list top sellers.";
-      }
-
-      const summary = result.map((r, i) => `${i + 1}. ${r._id} (${r.sales.toLocaleString()})`).join("\n");
-      return `Here are your top 5 performing products:\n${summary}`;
-    }
-
-    // =========================
-    // DEFAULT FALLBACK
-    // =========================
-    return "I couldn't quite understand that. Try asking about total revenue, top products, best-performing regions, or sales trends.";
+    return smartFallback();
 
   } catch (error) {
-    console.error("[Chat AI Service Error]:", error.message);
-    return "I encountered an error trying to search the database. Please try again.";
+    console.error("[Chat Service Error]:", error.message);
+    return "⚠️ Something went wrong while processing your query.";
   }
 };

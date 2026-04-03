@@ -3,88 +3,103 @@ const Sales = require("../models/Sales");
 
 exports.generatePDFReport = async (res) => {
   try {
-    // SECURITY/PERFORMANCE: Limit to 500 recent records to prevent PDF generation from exhausting server RAM
-    const sales = await Sales.find().sort({ date: -1 }).limit(500).lean();
+    const sales = await Sales.find()
+      .sort({ date: -1 })
+      .limit(500)
+      .lean();
 
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
-
-    // Pipe directly to the Express response object
-    doc.pipe(res);
-
-    // --- TITLE ---
-    doc.fontSize(20)
-       .font('Helvetica-Bold')
-       .text("PRISMORA BUSINESS SALES REPORT", { align: "center" });
-    
-    doc.fontSize(10)
-       .font('Helvetica')
-       .text(`Generated on: ${new Date().toLocaleString()}`, { align: "center" });
-       
-    doc.moveDown(2);
-
-    // --- SUMMARY METRICS ---
-    const totalRevenue = sales.reduce((sum, s) => sum + s.revenue, 0);
-    const totalQuantity = sales.reduce((sum, s) => sum + s.quantity, 0);
-
-    doc.fontSize(14).font('Helvetica-Bold').text("Recent Activity Summary (Top 500)");
-    doc.moveDown(0.5);
-    doc.fontSize(11).font('Helvetica');
-    doc.text(`Total Revenue (from sample): ${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalRevenue)}`);
-    doc.text(`Total Units Sold (from sample): ${totalQuantity.toLocaleString()}`);
-    doc.moveDown(2);
-
-    // --- TABLE GENERATION HELPER ---
-    const drawTableHeader = () => {
-      doc.fontSize(10).font('Helvetica-Bold');
-      doc.text("Date", 50, doc.y, { continued: true, width: 70 });
-      doc.text("Product", 120, doc.y, { continued: true, width: 130 });
-      doc.text("Category", 250, doc.y, { continued: true, width: 100 });
-      doc.text("Qty", 350, doc.y, { continued: true, width: 50 });
-      doc.text("Revenue", 400, doc.y, { continued: true, width: 70 });
-      doc.text("Region", 470, doc.y);
-      
-      doc.moveDown(0.5);
-      doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#cccccc').stroke();
-      doc.moveDown(0.5);
-    };
-
-    drawTableHeader();
-
-    // --- TABLE DATA WITH PAGE BREAK LOGIC ---
-    doc.font('Helvetica');
-    
-    for (const item of sales) {
-      // FIX: Check if we are at the bottom of the page
-      if (doc.y > 750) {
-        doc.addPage();
-        drawTableHeader();
-        doc.font('Helvetica');
-      }
-
-      const dateStr = item.date ? new Date(item.date).toLocaleDateString('en-IN') : 'N/A';
-      
-      // We use string limits to ensure columns don't overlap
-      doc.text(dateStr, 50, doc.y, { continued: true, width: 70 });
-      doc.text((item.product || "").substring(0, 20), 120, doc.y, { continued: true, width: 130 });
-      doc.text((item.category || "").substring(0, 15), 250, doc.y, { continued: true, width: 100 });
-      doc.text(item.quantity?.toString() || "0", 350, doc.y, { continued: true, width: 50 });
-      doc.text(`₹${item.revenue?.toLocaleString() || "0"}`, 400, doc.y, { continued: true, width: 70 });
-      doc.text((item.region || "").substring(0, 15), 470, doc.y);
-      
-      doc.moveDown(0.5);
+    if (!sales.length) {
+      return res.status(400).json({ message: "No data available for PDF report." });
     }
 
-    // Finalize the PDF
+    // Calculate Summary Metrics
+    const totalRevenue = sales.reduce((sum, item) => sum + (item.revenue || 0), 0);
+    const formattedTotal = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(totalRevenue);
+
+    const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", 'attachment; filename="Prismora_Executive_Report.pdf"');
+
+    doc.pipe(res);
+
+    // --- Header ---
+    doc.fontSize(24).font('Helvetica-Bold').fillColor('#4f46e5').text("PRISMORA", { align: "left" });
+    doc.fontSize(12).font('Helvetica').fillColor('#64748b').text("Executive Sales Report", { align: "left" });
+    doc.moveDown(0.5);
+    doc.fontSize(10).text(`Generated on: ${new Date().toLocaleString('en-IN')}`, { align: "left" });
+    doc.moveDown(1);
+
+    // --- Executive Summary Box ---
+    doc.rect(50, doc.y, 495, 60).fillAndStroke('#f8fafc', '#e2e8f0');
+    doc.fillColor('#0f172a').fontSize(12).font('Helvetica-Bold').text("Financial Summary", 65, doc.y + 10);
+    doc.fontSize(10).font('Helvetica').text(`Total Transactions: ${sales.length}`, 65, doc.y + 20);
+    doc.text(`Total Revenue: ${formattedTotal}`, 300, doc.y - 12);
+    doc.moveDown(3);
+
+    // --- Table Column Settings ---
+    const tableTop = doc.y;
+    const colProduct = 60;
+    const colCategory = 240;
+    const colRegion = 360;
+    const colRevenue = 440;
+
+    const drawHeaders = (y) => {
+      doc.rect(50, y - 5, 495, 20).fill('#1e293b'); // Dark Slate Header
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(10);
+      doc.text("Product", colProduct, y);
+      doc.text("Category", colCategory, y);
+      doc.text("Region", colRegion, y);
+      doc.text("Revenue", colRevenue, y, { width: 95, align: "right" });
+    };
+
+    let currentY = tableTop;
+    drawHeaders(currentY);
+    currentY += 25;
+
+    // --- Table Rows with Zebra Striping ---
+    sales.forEach((item, index) => {
+      if (currentY > 750) {
+        doc.addPage();
+        currentY = 50;
+        drawHeaders(currentY);
+        currentY += 25;
+      }
+
+      // Zebra Striping (Light gray background for even rows)
+      if (index % 2 === 0) {
+        doc.rect(50, currentY - 5, 495, 20).fill('#f8fafc');
+      }
+
+      const revenueStr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(item.revenue || 0);
+
+      doc.fillColor('#334155').font('Helvetica').fontSize(10);
+      doc.text(item.product || "N/A", colProduct, currentY, { width: 170, height: 15, ellipsis: true });
+      doc.text(item.category || "N/A", colCategory, currentY, { width: 110, height: 15, ellipsis: true });
+      doc.text(item.region || "N/A", colRegion, currentY, { width: 80, height: 15, ellipsis: true });
+      doc.text(revenueStr, colRevenue, currentY, { width: 95, align: "right" });
+      
+      currentY += 20;
+    });
+
+    // --- Footer & Pagination ---
+    const pages = doc.bufferedPageRange();
+    for (let i = 0; i < pages.count; i++) {
+      doc.switchToPage(i);
+      doc.moveTo(50, doc.page.height - 50).lineTo(545, doc.page.height - 50).strokeColor('#cbd5e1').lineWidth(1).stroke();
+      doc.fontSize(8).fillColor('#94a3b8').text(
+        `CONFIDENTIAL  |  Page ${i + 1} of ${pages.count}`,
+        50,
+        doc.page.height - 40,
+        { align: 'center' }
+      );
+    }
+
     doc.end();
 
   } catch (error) {
-    console.error("[PDF Report Service Error]:", error);
-    // If we haven't sent headers yet, we can send a 500 JSON. 
-    // If doc.pipe started, sending JSON will crash Express. We must just end the response.
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to generate PDF report." });
-    } else {
-      res.end(); 
-    }
+    console.error("[PDF Error]:", error);
+    if (!res.headersSent) res.status(500).json({ message: "PDF generation failed" });
+    else res.end();
   }
 };

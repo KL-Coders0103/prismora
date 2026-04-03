@@ -7,73 +7,109 @@ const {
   recommendProducts
 } = require("../services/mlService");
 
+const Sales = require("../models/Sales");
+
+// 🔥 SMART INTENT (IMPROVED)
+const detectIntent = (msg) => {
+  const q = msg.toLowerCase();
+
+  if (/forecast|future|predict|next/i.test(q)) return "forecast";
+  if (/anomaly|issue|problem|weird/i.test(q)) return "anomaly";
+  if (/churn|leave|customer loss/i.test(q)) return "churn";
+  if (/recommend|suggest|improve/i.test(q)) return "recommend";
+
+  // 🔥 SYSTEM QUESTIONS
+  if (/what is|about|system|prismora|how does it work/i.test(q))
+    return "system";
+
+  return "general";
+};
+
 exports.chatQuery = async (req, res) => {
   try {
     let { message } = req.body;
 
-    if (!message || message.trim() === "") {
-      return res.status(400).json({ message: "Query message is required." });
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: "Message required." });
     }
 
-    message = message.trim().toLowerCase();
+    const intent = detectIntent(message);
 
-    if (message.length > 500) {
-      return res.status(400).json({ message: "Query too long (max 500 characters)." });
-    }
+    const latestSale = await Sales.findOne().sort({ date: -1 });
+
+    const inputData = latestSale
+      ? {
+          price: latestSale.price,
+          quantity: latestSale.quantity,
+          revenue: latestSale.revenue
+        }
+      : null;
 
     let reply = "";
 
-    // =========================
-    // ML: SALES FORECAST
-    // =========================
-    if (message.includes("forecast") || message.includes("predict sales")) {
-      const result = await forecastSales(30);
-      if (result && result.prediction) {
-        reply = `Predicted sales for the next 30 days: ₹${result.prediction.toFixed(2)}. ${result.insight || ""}`;
-      } else {
-        reply = "I'm currently unable to connect to the forecasting model. Please try again later.";
+    switch (intent) {
+      case "forecast": {
+        const result = await forecastSales(30);
+
+        reply = result?.prediction
+          ? `📈 Sales Forecast:\n\nExpected revenue for next 30 days is ₹${result.prediction.toFixed(2)}.\n\n${result.insight || ""}`
+          : "⚠️ Forecast model unavailable.";
+        break;
       }
-    }
-    // =========================
-    // ML: ANOMALY DETECTION
-    // =========================
-    else if (message.includes("anomaly") || message.includes("anomalies")) {
-      const result = await detectAnomaly({ price: 5000, quantity: 2, revenue: 10000 }); // Placeholder params
-      reply = result?.insight || "The anomaly detection model is currently offline. No anomalies can be verified at this moment.";
-    }
-    // =========================
-    // ML: CHURN PREDICTION
-    // =========================
-    else if (message.includes("churn") || message.includes("leaving")) {
-      const result = await predictChurn({ price: 5000, quantity: 1, revenue: 5000 }); // Placeholder params
-      reply = result?.insight || "The customer churn prediction engine is currently processing. Please check back later.";
-    }
-    // =========================
-    // ML: PRODUCT RECOMMENDATION
-    // =========================
-    else if (message.includes("recommend") || message.includes("suggestion")) {
-      const result = await recommendProducts("Laptop"); // Placeholder param
-      if (result && result.recommendations) {
-        reply = `Based on current data, I recommend focusing on: ${result.recommendations.join(", ")}.`;
-      } else {
-        reply = "I couldn't generate recommendations at this time due to a model timeout.";
+
+      case "anomaly": {
+        const result = inputData ? await detectAnomaly(inputData) : null;
+
+        reply =
+          result?.insight ||
+          "✅ No anomalies detected in recent sales.";
+        break;
       }
-    }
-    // =========================
-    // DEFAULT NLP QUERY (DB Data)
-    // =========================
-    else {
-      reply = await processQuery(message);
+
+      case "churn": {
+        const result = inputData ? await predictChurn(inputData) : null;
+
+        reply =
+          result?.insight ||
+          "ℹ️ Churn prediction not available.";
+        break;
+      }
+
+      case "recommend": {
+        const product = latestSale?.product || "Laptop";
+        const result = await recommendProducts(product);
+
+        reply = result?.recommendations?.length
+          ? `💡 Recommendations:\n\n• ${result.recommendations.join("\n• ")}`
+          : "⚠️ Unable to generate recommendations.";
+        break;
+      }
+
+      // 🔥 NEW SYSTEM RESPONSE
+      case "system": {
+        reply = `🤖 PRISMORA is an AI-powered Business Intelligence platform.
+
+It helps you:
+• Analyze sales & customer data
+• Detect anomalies automatically
+• Predict future sales using ML
+• Get AI-driven insights & recommendations
+
+Think of it as your smart business assistant 🚀`;
+        break;
+      }
+
+      default:
+        reply = await processQuery(message);
     }
 
-    // Log the action securely
     const userId = req.user?.id || req.user?._id || "system";
-    await logActivity(userId, "ai_chat_query", { query: message.substring(0, 100) });
+    logActivity(userId, "ai_chat_query").catch(() => {});
 
     res.status(200).json({ reply });
 
   } catch (error) {
     console.error("[AI Chat Error]:", error);
-    res.status(500).json({ message: "Failed to process AI query due to an internal server error." });
+    res.status(500).json({ message: "AI chat failed." });
   }
 };
